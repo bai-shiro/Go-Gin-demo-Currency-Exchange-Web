@@ -9,10 +9,10 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	auth := r.Group("api/auth")
+	auth := r.Group("/api/auth")
 	{
 		auth.POST("/login", controllers.Login)
-		auth.POST("register", controllers.Register)
+		auth.POST("/register", controllers.Register)
 	}
 
 	api := r.Group("/api")
@@ -21,5 +21,14 @@ func SetupRouter() *gin.Engine {
 	{
 		api.POST("/exchangeRates", controllers.CreateExchangeRate)
 	}
+
+	articles := r.Group("/api/articles")
+	articles.GET("", controllers.GetArticles)
+	articles.GET("/:id", controllers.GetArticlesByID)
+	articles.Use(middlewares.AuthMiddleWare())
+	{
+		articles.POST("", controllers.CreateArticle)
+	}
+
 	return r
 }
