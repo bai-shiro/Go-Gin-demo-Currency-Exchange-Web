@@ -25,9 +25,12 @@ func SetupRouter() *gin.Engine {
 	articles := r.Group("/api/articles")
 	articles.GET("", controllers.GetArticles)
 	articles.GET("/:id", controllers.GetArticlesByID)
+	articles.GET("/:id/like", controllers.GetArticleLikes)
 	articles.Use(middlewares.AuthMiddleWare())
 	{
 		articles.POST("", controllers.CreateArticle)
+
+		articles.POST("/:id/like", controllers.LikeArticle)
 	}
 
 	return r

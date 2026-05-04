@@ -12,7 +12,7 @@ import (
 func Register(ctx *gin.Context) {
 	var user models.User
 
-	if err := ctx.ShouldBindJSON(&user); err != err {
+	if err := ctx.ShouldBindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"Error" : err.Error(),
 		})
