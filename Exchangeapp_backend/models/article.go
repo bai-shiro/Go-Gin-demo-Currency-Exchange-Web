@@ -7,5 +7,5 @@ type Article struct {
 	Title string `binding:"required"`
 	Content string `binding:"required"`
 	Preview string `binding:"required"`
-	Likes int `gorm:"default:0"`
+	// Likes int `gorm:"default:0"`
 }

@@ -1,14 +1,19 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"exchangeapp/global"
 	"exchangeapp/models"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	"gorm.io/gorm"
 )
+
+var cacheKey = "articles"
 
 func CreateArticle(ctx *gin.Context){
 	var article models.Article
@@ -28,18 +33,51 @@ func CreateArticle(ctx *gin.Context){
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, article)
-}
-
-func GetArticles(ctx *gin.Context) {
-	var articles []models.Article
-
-	if err := global.Db.Find(&articles).Error; err != nil {
+	if err := global.RedisDB.Del(cacheKey).Err(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, articles)
+	ctx.JSON(http.StatusCreated, article)
+}
+
+func GetArticles(ctx *gin.Context) {
+
+	cacheData, err := global.RedisDB.Get(cacheKey).Result()
+
+	if err == redis.Nil {	// 缓存未命中
+		var articles []models.Article
+
+		if err := global.Db.Find(&articles).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+			return
+		}
+
+		articlesJson, err := json.Marshal(articles)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+			return
+		}
+
+		// 存入缓存
+		if err := global.RedisDB.Set(cacheKey, articlesJson, 10*time.Minute).Err(); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, articles)
+
+	} else if err != nil {	// 报错
+		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+		return
+	} else {	// 缓存命中
+		var articles []models.Article
+		if err := json.Unmarshal([]byte(cacheData), &articles); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusOK, articles)
+	}
 }
 
 func GetArticlesByID(ctx *gin.Context) {
