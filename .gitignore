@@ -1,0 +1,17 @@
+# Go
+Exchangeapp_backend/tmp/
+Exchangeapp_backend/Exchangeapp_backend
+Exchangeapp_backend/Exchangeapp_backend.exe
+Exchangeapp_backendor/Exchangeapp_backend
+Exchangeapp_backendor/Exchangeapp_backend.exe
+
+# IDE
+.idea/
+.vscode/
+
+# Config（敏感信息）
+Exchangeapp_backend/config/config.yml
+
+# OS
+.DS_Store
+Thumbs.db
