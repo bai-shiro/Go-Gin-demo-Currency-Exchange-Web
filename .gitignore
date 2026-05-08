@@ -4,6 +4,8 @@ Exchangeapp_backend/Exchangeapp_backend
 Exchangeapp_backend/Exchangeapp_backend.exe
 Exchangeapp_backendor/Exchangeapp_backend
 Exchangeapp_backendor/Exchangeapp_backend.exe
+Exchangeapp_backend/main                                                                                                           
+Exchangeapp_backend/main.exe
 
 # IDE
 .idea/
@@ -11,7 +13,11 @@ Exchangeapp_backendor/Exchangeapp_backend.exe
 
 # Config（敏感信息）
 Exchangeapp_backend/config/config.yml
+Exchangeapp_backend/.env
 
 # OS
 .DS_Store
 Thumbs.db
+
+# 学习笔记
+学习文档记录/

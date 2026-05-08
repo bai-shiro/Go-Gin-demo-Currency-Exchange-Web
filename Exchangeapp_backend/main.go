@@ -19,7 +19,7 @@ func main() {
 	port := config.AppConfig.App.Port
 
 	if port == "" {
-		port = ":8080"
+		port = ":3000"
 	}
 
 	srv := &http.Server{

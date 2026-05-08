@@ -2,9 +2,12 @@
 
 [![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
 [![Gin](https://img.shields.io/badge/Gin-v1.12-00ADD8)](https://gin-gonic.com/)
+[![Docker](https://img.shields.io/badge/Docker-✓-2496ED?logo=docker)](https://docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-一个基于 **Go + Gin + GORM + Redis + MySQL** 的汇率兑换与新闻文章管理后端 API 项目，配套 Vue 3 前端。
+一个基于 **Go + Gin + GORM + Redis + MySQL** 的汇率兑换与新闻文章管理后端 API 项目，支持 Docker 一键部署，配套 Vue 3 前端。
+
+(新增Docker部署,后续可能会更新完善更多功能)
 
 ---
 
@@ -52,6 +55,10 @@
 ```
 Exchangeapp_backend/
 ├── main.go                     # 入口：优雅关停 + HTTP 服务启动
+├── Dockerfile                  # 多阶段构建（Go 编译 → Alpine 运行）
+├── docker-compose.yml          # 一键启动（backend + MySQL + Redis）
+├── .dockerignore               # 排除敏感文件进入 Docker 镜像
+├── .env.example                # 环境变量模板（clone 后复制为 .env）
 ├── config/
 │   ├── config.go               # 配置文件加载（Viper）
 │   ├── config.yml              # 配置项（已在 .gitignore 中排除）
@@ -85,6 +92,13 @@ Exchangeapp_backend/
 
 ## 前置要求
 
+### Docker 部署（推荐）
+
+- [Docker](https://docs.docker.com/get-docker/) 24+
+- [Docker Compose](https://docs.docker.com/compose/install/) v2+
+
+### 传统本地部署
+
 - [Go](https://go.dev/dl/) 1.26+
 - [MySQL](https://dev.mysql.com/downloads/) 8.0+
 - [Redis](https://redis.io/download/) 7.0+
@@ -94,20 +108,57 @@ Exchangeapp_backend/
 
 ## 安装与运行
 
-### 1. 克隆仓库
+### 🐳 Docker 部署（推荐）
+
+无需安装 Go、MySQL、Redis，只需 Docker 即可一键启动。
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/<你的用户名>/<仓库名>.git
+cd <仓库名>/Exchangeapp_backend
+
+# 2. 从模板创建配置文件
+cp config/config.yml.example config/config.yml
+cp .env.example .env
+# （可选）编辑 .env 修改数据库密码等
+
+# 3. 一键启动
+docker-compose up --build -d
+
+# 4. 查看日志
+docker-compose logs -f backend
+```
+
+`docker-compose up` 会自动完成以下工作：
+
+- 拉取 MySQL 8.0、Redis 7.4 镜像
+- 编译 Go 项目并启动后端服务（端口 3000）
+- MySQL 健康检查通过后 backend 才启动，避免连接失败
+
+停止服务：
+
+```bash
+docker-compose down
+```
+
+> 注意：`docker-compose down -v` 会删除数据库数据，谨慎使用。
+
+### 传统本地部署
+
+#### 1. 克隆仓库
 
 ```bash
 git clone https://github.com/<你的用户名>/<仓库名>.git
 cd <仓库名>/Exchangeapp_backend
 ```
 
-### 2. 配置数据库与 Redis
+#### 2. 配置数据库与 Redis
 
 确保 MySQL 和 Redis 已启动。
 
 ```bash
 # 从模板创建配置文件，填入你自己的数据库密码
-cp Exchangeapp_backend/config/config.yml.example Exchangeapp_backend/config/config.yml
+cp config/config.yml.example config/config.yml
 ```
 
 编辑 `config/config.yml`：
@@ -119,7 +170,7 @@ database:
 
 > 注意：需先在 MySQL 中创建数据库 `currency_exchange_db`。
 
-### 3. 启动后端
+#### 3. 启动后端
 
 ```bash
 cd Exchangeapp_backend
@@ -128,7 +179,7 @@ go run main.go
 
 服务启动后输出：无报错即成功。按 `Ctrl+C` 优雅关停。
 
-### 4. （可选）启动前端
+#### 4. （可选）启动前端
 
 ```bash
 cd Exchangeapp_frontend
