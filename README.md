@@ -7,7 +7,7 @@
 
 一个基于 **Go + Gin + GORM + Redis + MySQL** 的汇率兑换与新闻文章管理后端 API 项目，支持 Docker 一键部署，配套 Vue 3 前端。
 
-(新增Docker部署,后续可能会更新完善更多功能)
+(重构代码目录为经典Golang项目目录,预更新)
 
 ---
 
@@ -54,34 +54,37 @@
 
 ```
 Exchangeapp_backend/
-├── main.go                     # 入口：优雅关停 + HTTP 服务启动
+├── cmd/server/
+│   └── main.go                 # 入口：优雅关停 + HTTP 服务启动
+├── configs/
+│   ├── config.go               # 配置文件加载（Viper）
+│   ├── config.yml.example      # 配置模板（clone 后复制为 config.yml）
+│   ├── db.go                   # MySQL 连接初始化
+│   └── redis.go                # Redis 连接初始化
+├── internal/
+│   ├── controllers/
+│   │   ├── auth_controller.go      # 注册 & 登录
+│   │   ├── exchange_rate_controller.go  # 汇率查询 & 创建
+│   │   ├── article_controller.go   # 文章 CRUD（含 Redis 缓存）
+│   │   └── like_controller.go      # 文章点赞 & 查看点赞数
+│   ├── global/
+│   │   └── global.go               # 全局变量（DB、RedisDB）
+│   ├── middlewares/
+│   │   └── auth_middleware.go      # JWT 鉴权中间件
+│   ├── models/
+│   │   ├── user.go                 # 用户模型
+│   │   ├── exchange_rate.go        # 汇率模型
+│   │   └── article.go              # 文章模型
+│   ├── router/
+│   │   └── router.go               # 路由注册 + CORS 中间件
+│   └── utils/
+│   │   └── utils.go                # JWT 生成/解析 + bcrypt 哈希
 ├── Dockerfile                  # 多阶段构建（Go 编译 → Alpine 运行）
 ├── docker-compose.yml          # 一键启动（backend + MySQL + Redis）
 ├── .dockerignore               # 排除敏感文件进入 Docker 镜像
 ├── .env.example                # 环境变量模板（clone 后复制为 .env）
-├── config/
-│   ├── config.go               # 配置文件加载（Viper）
-│   ├── config.yml              # 配置项（已在 .gitignore 中排除）
-│   ├── config.yml.example      # 配置模板（clone 后复制此文件）
-│   ├── db.go                   # MySQL 连接初始化
-│   └── redis.go                # Redis 连接初始化
-├── controllers/
-│   ├── auth_controller.go      # 注册 & 登录
-│   ├── exchange_rate_controller.go  # 汇率查询 & 创建
-│   ├── article_controller.go   # 文章 CRUD（含 Redis 缓存）
-│   └── like_controller.go      # 文章点赞 & 查看点赞数
-├── global/
-│   └── global.go               # 全局变量（DB、RedisDB）
-├── middlewares/
-│   └── auth_middleware.go      # JWT 鉴权中间件
-├── models/
-│   ├── user.go                 # 用户模型
-│   ├── exchange_rate.go        # 汇率模型
-│   └── article.go              # 文章模型
-├── router/
-│   └── router.go               # 路由注册 + CORS 中间件
-└── utils/
-    └── utils.go                # JWT 生成/解析 + bcrypt 哈希
+├── go.mod
+└── go.sum
 
 其他文档（暂未上线）：
 ├── Exchangeapp_frontend/       # Vue 3 前端（独立项目）
@@ -114,8 +117,8 @@ Exchangeapp_backend/
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/<你的用户名>/<仓库名>.git
-cd <仓库名>/Exchangeapp_backend
+git clone https://github.com/bai-shiro/Go-Gin-demo-Currency-Exchange-Web.git
+cd Go-Gin-demo-Currency-Exchange-Web/Exchangeapp_backend
 
 # 2. 从模板创建配置文件
 cp config/config.yml.example config/config.yml
@@ -148,8 +151,8 @@ docker-compose down
 #### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/<你的用户名>/<仓库名>.git
-cd <仓库名>/Exchangeapp_backend
+git clone https://github.com/bai-shiro/Go-Gin-demo-Currency-Exchange-Web.git
+cd Go-Gin-demo-Currency-Exchange-Web/Exchangeapp_backend
 ```
 
 #### 2. 配置数据库与 Redis
@@ -173,7 +176,7 @@ database:
 #### 3. 启动后端
 
 ```bash
-cd Exchangeapp_backend
+cd Exchangeapp_backend/cmd/server
 go run main.go
 ```
 

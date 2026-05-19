@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"exchangeapp/config"
-	"exchangeapp/router"
+	config "exchangeapp/internal/config"
+	"exchangeapp/internal/router"
 	"log"
 	"net/http"
 	"os"

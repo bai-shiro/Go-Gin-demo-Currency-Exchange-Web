@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"exchangeapp/global"
-	"exchangeapp/models"
-	"exchangeapp/utils"
+	"exchangeapp/internal/global"
+	"exchangeapp/internal/models"
+	"exchangeapp/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

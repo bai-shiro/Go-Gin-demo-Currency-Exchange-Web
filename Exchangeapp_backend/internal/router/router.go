@@ -1,8 +1,8 @@
 package router
 
 import (
-	"exchangeapp/controllers"
-	"exchangeapp/middlewares"
+	"exchangeapp/internal/controllers"
+	"exchangeapp/internal/middlewares"
 	"time"
 
 	"github.com/gin-contrib/cors"

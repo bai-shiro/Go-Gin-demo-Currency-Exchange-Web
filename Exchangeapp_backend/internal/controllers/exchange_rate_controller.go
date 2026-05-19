@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"errors"
-	"exchangeapp/global"
-	"exchangeapp/models"
+	"exchangeapp/internal/global"
+	"exchangeapp/internal/models"
 	"net/http"
 	"time"
 

@@ -3,8 +3,8 @@ package controllers
 import (
 	"encoding/json"
 	"errors"
-	"exchangeapp/global"
-	"exchangeapp/models"
+	"exchangeapp/internal/global"
+	"exchangeapp/internal/models"
 	"net/http"
 	"time"
 

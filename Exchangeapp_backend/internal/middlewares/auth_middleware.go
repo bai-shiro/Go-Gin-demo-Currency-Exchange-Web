@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"exchangeapp/utils"
+	"exchangeapp/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

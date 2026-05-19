@@ -1,7 +1,7 @@
 package config
 
 import (
-	"exchangeapp/global"
+	"exchangeapp/internal/global"
 	"fmt"
 	"log"
 	"os"
@@ -25,8 +25,8 @@ func initDB() {
 		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", dbUser, dbPassword, dbHost, dbPort, dbNAME)
 	}
 
-  	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
 	if err != nil {
 		log.Fatalf("Failed to init database, err: %v", err)
 	}
@@ -35,7 +35,7 @@ func initDB() {
 	sqlDB.SetMaxIdleConns(AppConfig.Database.MaxIdleConns)
 	sqlDB.SetMaxOpenConns(AppConfig.Database.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Hour)
-	
+
 	if err != nil {
 		log.Fatalf("Failed to config database, err: %v", err)
 	}

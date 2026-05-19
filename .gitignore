@@ -12,7 +12,7 @@ Exchangeapp_backend/main.exe
 .vscode/
 
 # Config（敏感信息）
-Exchangeapp_backend/config/config.yml
+Exchangeapp_backend/configs/config.yml
 Exchangeapp_backend/.env
 
 # OS

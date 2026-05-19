@@ -1,7 +1,7 @@
 package config
 
 import (
-	"exchangeapp/global"
+	"exchangeapp/internal/global"
 	"fmt"
 	"log"
 	"os"
@@ -16,8 +16,8 @@ func initRedis() {
 		addr = fmt.Sprintf("%s:%s", redisHost, redisPort)
 	}
 	RedisClient := redis.NewClient(&redis.Options{
-		Addr: addr,
-		DB: 0,
+		Addr:     addr,
+		DB:       0,
 		Password: "",
 	})
 

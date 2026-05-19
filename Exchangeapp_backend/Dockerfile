@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o main .
+RUN go build -o main ./cmd/server/.
 
 # 运行阶段
 FROM alpine:latest AS runner

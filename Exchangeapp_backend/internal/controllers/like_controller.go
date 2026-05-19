@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"exchangeapp/global"
+	"exchangeapp/internal/global"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
