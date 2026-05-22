@@ -1,0 +1,71 @@
+package service
+
+import (
+	"encoding/json"
+	"exchangeapp/internal/models"
+	"exchangeapp/internal/repository"
+	"time"
+
+	"github.com/go-redis/redis"
+)
+
+var cacheKey = "articles"
+
+type ArticleService struct {
+	articles *repository.ArticleRepository
+	redis *redis.Client
+}
+
+func NewArticleService(articles *repository.ArticleRepository, redisClient *redis.Client) *ArticleService {
+	return &ArticleService{articles: articles, redis: redisClient}
+}
+
+func (s *ArticleService) Create(article *models.Article) error {
+	if err := s.articles.Create(article); err != nil {
+		return err
+	}
+
+	if err := s.redis.Del(cacheKey).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *ArticleService) List() ([]models.Article, error) {
+	cacheData, err := s.redis.Get(cacheKey).Result()
+
+	if err == redis.Nil {	// 缓存未命中
+		// 查询数据库
+		articles, err := s.articles.FindAll()
+		if err != nil {
+			return nil, err
+		}
+
+		artilcesJson, err := json.Marshal(articles)
+		if err != nil {
+			return articles, err
+		}
+
+		// 存入缓存
+		if err := s.redis.Set(cacheKey, artilcesJson, 10*time.Minute).Err(); err != nil {
+			return articles, err
+		}
+
+		return articles, nil
+	} else if err != nil {	// redis查询出错
+		return nil, err
+	} else {	// 缓存命中
+		var articles []models.Article
+		if err := json.Unmarshal([]byte(cacheData), &articles); err != nil {
+			return nil, err
+		}
+
+		return  articles, nil
+	}
+}
+
+func (s *ArticleService) GetByID(id string) (*models.Article,error) {
+	article, err := s.articles.FindByID(id)
+	return  article, err
+}

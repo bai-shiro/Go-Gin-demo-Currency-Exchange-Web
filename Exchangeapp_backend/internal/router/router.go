@@ -3,13 +3,14 @@ package router
 import (
 	"exchangeapp/internal/controllers"
 	"exchangeapp/internal/middlewares"
+	"exchangeapp/internal/service"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(services *service.Services) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -24,26 +25,30 @@ func SetupRouter() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
+	authController := controllers.NewAuthController(services.Auth)
+	articleController := controllers.NewArticleController(services.Articles)
+	rateController := controllers.NewRateController(services.Rates)
+
 	auth := r.Group("/api/auth")
 	{
-		auth.POST("/login", controllers.Login)
-		auth.POST("/register", controllers.Register)
+		auth.POST("/login", authController.Login)
+		auth.POST("/register", authController.Register)
 	}
 
 	api := r.Group("/api")
-	api.GET("/exchangeRates", controllers.GetExchangeRates)
+	api.GET("/exchangeRates", rateController.Latest)
 	api.Use(middlewares.AuthMiddleWare())
 	{
-		api.POST("/exchangeRates", controllers.CreateExchangeRate)
+		api.POST("/exchangeRates", rateController.Create)
 	}
 
 	articles := r.Group("/api/articles")
-	articles.GET("", controllers.GetArticles)
-	articles.GET("/:id", controllers.GetArticlesByID)
+	articles.GET("", articleController.List)
+	articles.GET("/:id", articleController.GetByID)
 	articles.GET("/:id/like", controllers.GetArticleLikes)
 	articles.Use(middlewares.AuthMiddleWare())
 	{
-		articles.POST("", controllers.CreateArticle)
+		articles.POST("", articleController.Create)
 
 		articles.POST("/:id/like", controllers.LikeArticle)
 	}

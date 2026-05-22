@@ -1,5 +1,5 @@
 # 编译阶段
-FROM golang:1.26.2-alpine AS builder
+FROM golang:1.26.3-alpine AS builder
 WORKDIR /app
 
 COPY go.mod go.sum /app/
@@ -14,7 +14,7 @@ RUN go build -o main ./cmd/server/.
 FROM alpine:latest AS runner
 WORKDIR /app
 COPY --from=builder /app/main .
-COPY ./config/config.yml ./config/
+COPY ./configs/config.yml ./configs/
 
 EXPOSE 3000
 

@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	config "exchangeapp/internal/config"
+	"exchangeapp/internal/models"
+	"exchangeapp/internal/repository"
 	"exchangeapp/internal/router"
+	"exchangeapp/internal/service"
 	"log"
 	"net/http"
 	"os"
@@ -12,18 +15,31 @@ import (
 )
 
 func main() {
-	config.InitConfig()
-
-	r := router.SetupRouter()
-
-	port := config.AppConfig.App.Port
-
-	if port == "" {
-		port = ":3000"
+	appConfig, err := config.InitConfig()
+	if err != nil {
+		log.Fatalf("init config:%s",err)
 	}
 
+	// 迁移数据库字段
+	if err := appConfig.Db.AutoMigrate(
+		&models.User{},
+		&models.Article{},
+		&models.ExchangeRate{},
+	); err != nil {
+		log.Fatal("database migration failed error:", err)
+	}
+
+	// 依赖注入数据库和业务层
+	repos := repository.NewRepositories(appConfig.Db)
+	services := service.NewServices(repos, appConfig.RedisDB)
+
+	// 注册路由
+	r := router.SetupRouter(services)
+
+	// port := config.AppConfig.App.Port
+
 	srv := &http.Server{
-		Addr:    port,
+		Addr:    appConfig.App.Port,
 		Handler: r,
 	}
 

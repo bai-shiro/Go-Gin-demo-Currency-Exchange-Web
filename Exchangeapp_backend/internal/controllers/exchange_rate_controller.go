@@ -2,16 +2,23 @@ package controllers
 
 import (
 	"errors"
-	"exchangeapp/internal/global"
 	"exchangeapp/internal/models"
+	"exchangeapp/internal/service"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func CreateExchangeRate(ctx *gin.Context) {
+type RateController struct {
+	rates *service.RateService
+}
+
+func NewRateController(rates *service.RateService) *RateController {
+	return  &RateController{rates: rates}
+}
+
+func (c *RateController) Create(ctx *gin.Context) {
 	var exchangeRate models.ExchangeRate
 
 	if err := ctx.ShouldBindJSON(&exchangeRate); err != nil {
@@ -19,25 +26,16 @@ func CreateExchangeRate(ctx *gin.Context) {
 		return
 	}
 
-	exchangeRate.Data = time.Now()
-
-	if err := global.Db.AutoMigrate(&exchangeRate); err != nil {
+	if err := c.rates.Create(&exchangeRate); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
-		return
-	}
-
-	if err := global.Db.Create(&exchangeRate).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
-		return
 	}
 
 	ctx.JSON(http.StatusCreated, exchangeRate)
 }
 
-func GetExchangeRates(ctx *gin.Context) {
-	var exchangeRates []models.ExchangeRate
-
-	if err := global.Db.Find(&exchangeRates).Error; err != nil {
+func (c *RateController) Latest(ctx *gin.Context) {
+	exchangeRates, err := c.rates.Latest()
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"Error" : err.Error()})
 		} else {
@@ -45,5 +43,6 @@ func GetExchangeRates(ctx *gin.Context) {
 		}
 		return
 	}
+
 	ctx.JSON(http.StatusOK, exchangeRates)
 }

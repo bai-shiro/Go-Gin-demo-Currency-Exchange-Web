@@ -1,15 +1,23 @@
 package controllers
 
 import (
-	"exchangeapp/internal/global"
+	"errors"
 	"exchangeapp/internal/models"
-	"exchangeapp/internal/utils"
+	"exchangeapp/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Register(ctx *gin.Context) {
+type AuthController struct {
+	auth *service.AuthService
+}
+
+func NewAuthController(auth *service.AuthService) *AuthController {
+	return &AuthController{auth: auth}
+}
+
+func (c *AuthController) Register(ctx *gin.Context) {
 	var user models.User
 
 	if err := ctx.ShouldBindJSON(&user); err != nil {
@@ -19,33 +27,11 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
-	hashedPwd, err := utils.HashPassword(user.Password)
-	
+	token, err := c.auth.Register(&user)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"Error" : err.Error(),
 		})
-		return
-	}
-
-	user.Password = hashedPwd
-
-	token, err := utils.GenerateJWT(user.Username)
-
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"Error" : err.Error(),
-		})
-		return
-	}
-
-	if err := global.Db.AutoMigrate(&user); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
-		return
-	}
-
-	if err := global.Db.Create(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
 		return
 	}
 
@@ -53,7 +39,7 @@ func Register(ctx *gin.Context) {
 	
 }
 
-func Login(ctx *gin.Context) {
+func (c *AuthController) Login(ctx *gin.Context) {
 	var input struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -64,24 +50,13 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	var user models.User
+	token, err := c.auth.Login(input.Username, input.Password)
 
-	if err := global.Db.Where("username=?", input.Username).First(&user).Error; err != nil {
+	if errors.Is(err, errors.New("incorrect credentials")) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"Error" : "incorrect credentials"})
 		return
-	}
-
-	if !utils.CheckPassword(input.Password, user.Password) {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"Error" : "incorrect credentials"})
-		return
-	}
-
-	token, err := utils.GenerateJWT(user.Username)
-
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"Error" : err.Error(),
-		})
+	} else if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{ "Error" : err.Error() })
 		return
 	}
 
