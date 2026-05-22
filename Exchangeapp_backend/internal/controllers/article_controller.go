@@ -58,3 +58,26 @@ func (c *ArticleController) GetByID(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, article)
 }
+
+func (c *ArticleController) Like(ctx *gin.Context) {
+	articleID := ctx.Param("id")
+
+	if err := c.articles.Like(articleID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : "failed to load article"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message" : "successfully to like the article"})
+}
+
+func (c *ArticleController) GetLikes(ctx *gin.Context) {
+	articleID := ctx.Param("id")
+
+	likes, err := c.articles.GetLikes(articleID); 
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : "failed to load article likes"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"likes" : likes})
+}

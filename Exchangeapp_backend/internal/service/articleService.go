@@ -69,3 +69,26 @@ func (s *ArticleService) GetByID(id string) (*models.Article,error) {
 	article, err := s.articles.FindByID(id)
 	return  article, err
 }
+
+func (s *ArticleService) Like(id string) error {
+	if err := s.redis.Incr(articleLikeKey(id)).Err(); err != nil {
+		return err
+	}
+
+	return  nil
+}
+
+func (s *ArticleService) GetLikes(id string) (string, error) {
+	likes, err := s.redis.Get(articleLikeKey(id)).Result(); 
+	if err == redis.Nil {
+		likes = "0"
+	} else if err != nil {
+		return "", err
+	}
+	
+	return likes, nil
+}
+
+func articleLikeKey(id string) string {
+	return "article:" + id + ":like"
+}
