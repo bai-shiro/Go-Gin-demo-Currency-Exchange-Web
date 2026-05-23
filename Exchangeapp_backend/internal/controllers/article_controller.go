@@ -19,7 +19,7 @@ func NewArticleController(articles *service.ArticleService) *ArticleController {
 }
 
 func (c *ArticleController) Create(ctx *gin.Context) {
-	var req dto.CreateArticleRequest
+	var req dto.ArticleRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.Error(ctx, apperrors.ErrInvalidParams)
@@ -33,6 +33,35 @@ func (c *ArticleController) Create(ctx *gin.Context) {
 	}
 
 	response.Created(ctx, toArticleResponse(article))
+}
+
+func (c *ArticleController) Update(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	var req dto.ArticleRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.Error(ctx, apperrors.ErrInvalidParams)
+		return
+	}
+
+	article, err := c.articles.Update(id, req.Title, req.Content, req.Preview)
+	if err != nil {
+		response.Error(ctx, err)
+		return
+	}
+
+	response.Success(ctx, toArticleResponse(article))
+}
+
+func (c *ArticleController) Delete(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	if err := c.articles.Delete(id); err != nil {
+		response.Error(ctx, err)
+		return
+	}
+
+	response.Success(ctx, gin.H{"message" : "successfully deleted the article"})
 }
 
 func (c *ArticleController) List(ctx *gin.Context) {

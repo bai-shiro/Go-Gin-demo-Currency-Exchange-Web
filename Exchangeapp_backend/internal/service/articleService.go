@@ -40,6 +40,44 @@ func (s *ArticleService) Create(title string, content string, preview string) (*
 	return article, nil
 }
 
+func (s *ArticleService) Update(id string, title string, content string, preview string) (*models.Article, error) {
+	article, err := s.articles.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	article.Title = title
+	article.Content = content
+	article.Preview = preview
+
+	if err := s.articles.Update(article); err != nil {
+		return nil, err
+	}
+
+	if err := s.redis.Del(cacheKey).Err(); err != nil {
+		return nil, err
+	}
+
+	return article, nil
+}
+
+func (s *ArticleService) Delete(id string) error {
+	article, err := s.articles.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if err := s.articles.Delete(article); err != nil {
+		return err
+	}
+
+	if err := s.redis.Del(cacheKey).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *ArticleService) List() ([]models.Article, error) {
 	cacheData, err := s.redis.Get(cacheKey).Result()
 

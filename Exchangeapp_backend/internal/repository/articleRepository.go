@@ -19,6 +19,14 @@ func (r *ArticleRepository) Create(article *models.Article) error {
 	return  r.db.Create(article).Error
 }
 
+func (r *ArticleRepository) Update(article *models.Article) error {
+	return r.db.Save(article).Error
+}
+
+func (r *ArticleRepository) Delete(article *models.Article) error {
+	return r.db.Delete(article).Error
+}
+
 func (r *ArticleRepository) FindAll() ([]models.Article, error) {
 	var articles []models.Article
 	if err := r.db.Find(&articles).Error; err != nil {

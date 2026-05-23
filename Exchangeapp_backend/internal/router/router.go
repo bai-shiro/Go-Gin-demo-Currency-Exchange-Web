@@ -49,6 +49,8 @@ func SetupRouter(services *service.Services) *gin.Engine {
 	articles.Use(middlewares.AuthMiddleWare())
 	{
 		articles.POST("", articleController.Create)
+		articles.PUT("/:id", articleController.Update)
+		articles.DELETE("/:id", articleController.Delete)
 
 		articles.POST("/:id/like", articleController.Like)
 	}
