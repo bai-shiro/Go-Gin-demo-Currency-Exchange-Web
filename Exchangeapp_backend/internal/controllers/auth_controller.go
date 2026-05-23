@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"errors"
-	"exchangeapp/internal/models"
+	"exchangeapp/internal/apperrors"
+	"exchangeapp/internal/dto"
+	"exchangeapp/internal/response"
 	"exchangeapp/internal/service"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,47 +18,35 @@ func NewAuthController(auth *service.AuthService) *AuthController {
 }
 
 func (c *AuthController) Register(ctx *gin.Context) {
-	var user models.User
+	var req dto.RegisterRequest
 
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"Error" : err.Error(),
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.Error(ctx, apperrors.ErrInvalidParams)
 		return
 	}
 
-	token, err := c.auth.Register(&user)
+	token, err := c.auth.Register(req.Username, req.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"Error" : err.Error(),
-		})
+		response.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"token" : token})
-	
+	response.Success(ctx, dto.AuthResponse{Token: token})
 }
 
 func (c *AuthController) Login(ctx *gin.Context) {
-	var input struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+	var req dto.LoginRequest
 
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"Error" : err.Error()})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.Error(ctx, apperrors.ErrInvalidParams)
 		return
 	}
 
-	token, err := c.auth.Login(input.Username, input.Password)
-
-	if errors.Is(err, errors.New("incorrect credentials")) {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"Error" : "incorrect credentials"})
-		return
-	} else if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{ "Error" : err.Error() })
+	token, err := c.auth.Login(req.Username, req.Password)
+	if err != nil {
+		response.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"token" : token})
+	response.Success(ctx, dto.AuthResponse{Token: token})
 }

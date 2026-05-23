@@ -1,13 +1,13 @@
 package controllers
 
 import (
-	"errors"
+	"exchangeapp/internal/apperrors"
+	"exchangeapp/internal/dto"
 	"exchangeapp/internal/models"
+	"exchangeapp/internal/response"
 	"exchangeapp/internal/service"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type ArticleController struct {
@@ -19,55 +19,53 @@ func NewArticleController(articles *service.ArticleService) *ArticleController {
 }
 
 func (c *ArticleController) Create(ctx *gin.Context) {
-	var article models.Article
+	var req dto.CreateArticleRequest
 
-	if err := ctx.ShouldBindJSON(&article); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"Error" : err.Error()})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.Error(ctx, apperrors.ErrInvalidParams)
 		return
 	}
 
-	if err := c.articles.Create(&article); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+	article, err := c.articles.Create(req.Title, req.Content, req.Preview)
+	if err != nil {
+		response.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, article)
+	response.Created(ctx, toArticleResponse(article))
 }
 
 func (c *ArticleController) List(ctx *gin.Context) {
 	articles, err := c.articles.List()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+		response.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, articles)
+	response.Success(ctx, toArticleResponses(articles))
 }
 
 func (c *ArticleController) GetByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	article, err := c.articles.GetByID(id)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		ctx.JSON(http.StatusNotFound, gin.H{"error" : err.Error()})
-		return
-	} else if err != nil{
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+	if err != nil {
+		response.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, article)
+	response.Success(ctx, toArticleResponse(article))
 }
 
 func (c *ArticleController) Like(ctx *gin.Context) {
 	articleID := ctx.Param("id")
 
 	if err := c.articles.Like(articleID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : "failed to load article"})
+		response.Error(ctx, apperrors.ErrInternal)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message" : "successfully to like the article"})
+	response.Success(ctx, gin.H{"message" : "successfully liked the article"})
 }
 
 func (c *ArticleController) GetLikes(ctx *gin.Context) {
@@ -75,9 +73,26 @@ func (c *ArticleController) GetLikes(ctx *gin.Context) {
 
 	likes, err := c.articles.GetLikes(articleID); 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : "failed to load article likes"})
+		response.Error(ctx, apperrors.ErrInternal)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"likes" : likes})
+	response.Success(ctx, gin.H{"likes" : likes})
+}
+
+func toArticleResponse(article *models.Article) dto.ArticleResponse {
+	return dto.ArticleResponse{
+		ID: article.ID, 
+		Title: article.Title, 
+		Content: article.Content, 
+		Preview: article.Preview, 
+	}
+}
+
+func toArticleResponses(articles []models.Article) []dto.ArticleResponse {
+	res := make([]dto.ArticleResponse, len(articles))
+	for i := range articles {
+		res[i] = toArticleResponse(&articles[i])
+	}
+	return res
 }

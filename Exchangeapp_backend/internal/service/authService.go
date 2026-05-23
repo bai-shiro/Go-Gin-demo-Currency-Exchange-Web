@@ -1,7 +1,7 @@
 package service
 
 import (
-	"errors"
+	"exchangeapp/internal/apperrors"
 	"exchangeapp/internal/models"
 	"exchangeapp/internal/repository"
 	"exchangeapp/internal/utils"
@@ -18,13 +18,16 @@ func NewAuthService(users *repository.UserRepository) *AuthService {
 	return &AuthService{users: users}
 }
 
-func (s *AuthService) Register(user *models.User) (string, error) {
-	hashedPwd, err := utils.HashPassword(user.Password)
+func (s *AuthService) Register(username, password string) (string, error) {
+	hashedPwd, err := utils.HashPassword(password)
 	if err != nil {
 		return "", err
 	}
 
-	user.Password = hashedPwd
+	user := &models.User{
+		Username: username,
+		Password: hashedPwd,
+	}
 
 	token, err := utils.GenerateJWT(user.Username)
 	if err != nil {
@@ -37,16 +40,16 @@ func (s *AuthService) Register(user *models.User) (string, error) {
 func (s *AuthService) Login(username string, password string) (string, error) {
 	user, err := s.users.FindByUsername(username)
 	if err != nil {
-		return "", errors.New("incorrect credentials")
+		return "", apperrors.ErrUnauthorized
 	}
 
 	if !utils.CheckPassword(password, user.Password) {
-		return "", errors.New("incorrect credentials")
+		return "", apperrors.ErrUnauthorized
 	}
 
 	token, err := utils.GenerateJWT(user.Username)
 	if err != nil {
-		return "", errors.New("incorrect credentials")
+		return "", apperrors.ErrInternal
 	}
 
 	return token, nil

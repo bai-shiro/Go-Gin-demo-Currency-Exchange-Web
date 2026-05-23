@@ -1,13 +1,13 @@
 package controllers
 
 import (
-	"errors"
+	"exchangeapp/internal/apperrors"
+	"exchangeapp/internal/dto"
 	"exchangeapp/internal/models"
+	"exchangeapp/internal/response"
 	"exchangeapp/internal/service"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type RateController struct {
@@ -19,30 +19,44 @@ func NewRateController(rates *service.RateService) *RateController {
 }
 
 func (c *RateController) Create(ctx *gin.Context) {
-	var exchangeRate models.ExchangeRate
+	var req dto.CreateRateRequest
 
-	if err := ctx.ShouldBindJSON(&exchangeRate); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"Error" : err.Error()})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.Error(ctx, apperrors.ErrInvalidParams)
 		return
 	}
 
-	if err := c.rates.Create(&exchangeRate); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
+	exchangeRate, err := c.rates.Create(req.FromCurrency, req.ToCurrency, req.Rate)
+	if err != nil {
+		response.Error(ctx, err)
+		return
 	}
 
-	ctx.JSON(http.StatusCreated, exchangeRate)
+	response.Created(ctx, toRateResponse(exchangeRate))
 }
 
 func (c *RateController) Latest(ctx *gin.Context) {
 	exchangeRates, err := c.rates.Latest()
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"Error" : err.Error()})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"Error" : err.Error()})
-		}
+		response.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, exchangeRates)
+	response.Success(ctx, toRateResponses(exchangeRates))
+}
+
+func toRateResponse(rate *models.ExchangeRate) dto.RateResponse {
+	return dto.RateResponse{
+		FromCurrency: rate.FromCurrency, 
+		ToCurrency: rate.ToCurrency, 
+		Rate: rate.Rate,
+	}
+}
+
+func toRateResponses(rates []models.ExchangeRate) []dto.RateResponse {
+	res := make([]dto.RateResponse, len(rates))
+	for i := range rates {
+		res[i] = toRateResponse(&rates[i])
+	}
+	return res
 }

@@ -2,11 +2,14 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
+	"exchangeapp/internal/apperrors"
 	"exchangeapp/internal/models"
 	"exchangeapp/internal/repository"
 	"time"
 
 	"github.com/go-redis/redis"
+	"gorm.io/gorm"
 )
 
 var cacheKey = "articles"
@@ -20,16 +23,21 @@ func NewArticleService(articles *repository.ArticleRepository, redisClient *redi
 	return &ArticleService{articles: articles, redis: redisClient}
 }
 
-func (s *ArticleService) Create(article *models.Article) error {
+func (s *ArticleService) Create(title string, content string, preview string) (*models.Article, error) {
+	article := &models.Article{
+		Title:   title,
+		Content: content,
+		Preview: preview,
+	}
 	if err := s.articles.Create(article); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := s.redis.Del(cacheKey).Err(); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return article, nil
 }
 
 func (s *ArticleService) List() ([]models.Article, error) {
@@ -67,6 +75,11 @@ func (s *ArticleService) List() ([]models.Article, error) {
 
 func (s *ArticleService) GetByID(id string) (*models.Article,error) {
 	article, err := s.articles.FindByID(id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, apperrors.ErrNotFound
+	} else if err != nil{
+		return nil, err
+	}
 	return  article, err
 }
 
