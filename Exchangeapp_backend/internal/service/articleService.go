@@ -6,13 +6,14 @@ import (
 	"exchangeapp/internal/apperrors"
 	"exchangeapp/internal/models"
 	"exchangeapp/internal/repository"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis"
 	"gorm.io/gorm"
 )
 
-var cacheKey = "articles"
+// var cacheKey = "articles"
 
 type ArticleService struct {
 	articles *repository.ArticleRepository
@@ -33,9 +34,7 @@ func (s *ArticleService) Create(title string, content string, preview string) (*
 		return nil, err
 	}
 
-	if err := s.redis.Del(cacheKey).Err(); err != nil {
-		return nil, err
-	}
+	s.invalidateArticleCache()
 
 	return article, nil
 }
@@ -54,9 +53,7 @@ func (s *ArticleService) Update(id string, title string, content string, preview
 		return nil, err
 	}
 
-	if err := s.redis.Del(cacheKey).Err(); err != nil {
-		return nil, err
-	}
+	s.invalidateArticleCache()
 
 	return article, nil
 }
@@ -71,44 +68,9 @@ func (s *ArticleService) Delete(id string) error {
 		return err
 	}
 
-	if err := s.redis.Del(cacheKey).Err(); err != nil {
-		return err
-	}
+	s.invalidateArticleCache()
 
 	return nil
-}
-
-func (s *ArticleService) List() ([]models.Article, error) {
-	cacheData, err := s.redis.Get(cacheKey).Result()
-
-	if err == redis.Nil {	// 缓存未命中
-		// 查询数据库
-		articles, err := s.articles.FindAll()
-		if err != nil {
-			return nil, err
-		}
-
-		artilcesJson, err := json.Marshal(articles)
-		if err != nil {
-			return articles, err
-		}
-
-		// 存入缓存
-		if err := s.redis.Set(cacheKey, artilcesJson, 10*time.Minute).Err(); err != nil {
-			return articles, err
-		}
-
-		return articles, nil
-	} else if err != nil {	// redis查询出错
-		return nil, err
-	} else {	// 缓存命中
-		var articles []models.Article
-		if err := json.Unmarshal([]byte(cacheData), &articles); err != nil {
-			return nil, err
-		}
-
-		return  articles, nil
-	}
 }
 
 func (s *ArticleService) GetByID(id string) (*models.Article,error) {
@@ -119,6 +81,48 @@ func (s *ArticleService) GetByID(id string) (*models.Article,error) {
 		return nil, err
 	}
 	return  article, err
+}
+
+func (s *ArticleService) ListPage(page int, pageSize int) ([]models.Article, int64, error) {
+	cacheKey := articleListPageCacheKey(page, pageSize)
+	cacheData, err := s.redis.Get(cacheKey).Result()
+
+	var payload struct {
+		List []models.Article `json:"list"`
+		Total int64 `json:"total"`
+	}
+
+	if err == redis.Nil {	// 缓存未命中
+		// 查询数据库
+		articles, total, err := s.articles.FindPage(page, pageSize)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		payload.List = articles
+		payload.Total = total
+
+		payloadJson, err := json.Marshal(payload)
+		if err != nil {
+			return articles, total, nil
+		}
+
+		// 存入缓存
+		_ = s.redis.Set(cacheKey, payloadJson, 10*time.Minute).Err()
+
+		return articles, total, nil
+	} else if err != nil {	// redis查询出错
+		return nil, 0, err
+	} else {	// 缓存命中
+		if err := json.Unmarshal([]byte(cacheData), &payload); err != nil {
+			return nil, 0, err
+		}
+
+		articles := payload.List
+		total := payload.Total
+
+		return  articles, total, nil
+	}
 }
 
 func (s *ArticleService) Like(id string) error {
@@ -140,6 +144,18 @@ func (s *ArticleService) GetLikes(id string) (string, error) {
 	return likes, nil
 }
 
+// 清理文章redis缓存
+func (s *ArticleService) invalidateArticleCache() {
+	keys, err := s.redis.Keys("articles:list:page:*").Result()
+	if err == nil && len(keys) > 0 {
+		_ = s.redis.Del(keys...).Err()
+	}
+}
+
 func articleLikeKey(id string) string {
 	return "article:" + id + ":like"
+}
+
+func articleListPageCacheKey(page int, pageSize int) string {
+	return fmt.Sprintf("articles:list:page:%d:size:%d", page, pageSize)
 }

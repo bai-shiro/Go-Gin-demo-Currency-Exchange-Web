@@ -14,6 +14,13 @@ type Body struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
+type Page struct {
+	Page int `json:"page"`
+	PageSize int `json:"page_size"`
+	Total int64 `json:"total"`
+	List interface{} `json:"list"`
+}
+
 func Success(ctx *gin.Context, data interface{}) {
 	ctx.JSON(http.StatusOK, Body{
 		Code: 0,

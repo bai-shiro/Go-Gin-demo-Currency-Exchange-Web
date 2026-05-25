@@ -6,6 +6,7 @@ import (
 	"exchangeapp/internal/models"
 	"exchangeapp/internal/response"
 	"exchangeapp/internal/service"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -64,16 +65,6 @@ func (c *ArticleController) Delete(ctx *gin.Context) {
 	response.Success(ctx, gin.H{"message" : "successfully deleted the article"})
 }
 
-func (c *ArticleController) List(ctx *gin.Context) {
-	articles, err := c.articles.List()
-	if err != nil {
-		response.Error(ctx, err)
-		return
-	}
-
-	response.Success(ctx, toArticleResponses(articles))
-}
-
 func (c *ArticleController) GetByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 
@@ -84,6 +75,31 @@ func (c *ArticleController) GetByID(ctx *gin.Context) {
 	}
 
 	response.Success(ctx, toArticleResponse(article))
+}
+
+func (c *ArticleController) ListPage(ctx *gin.Context) {
+	page := parseIntWithDefault(ctx.Query("page"), 1)
+	pageSize := parseIntWithDefault(ctx.Query("page_size"), 10)
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	articles, total, err := c.articles.ListPage(page, pageSize)
+	if err != nil {
+		response.Error(ctx, err)
+		return
+	}
+
+	response.Success(ctx, response.Page{
+		Page: page,
+		PageSize: pageSize,
+		Total: total,
+		List: toArticleResponses(articles),
+	})
 }
 
 func (c *ArticleController) Like(ctx *gin.Context) {
@@ -124,4 +140,12 @@ func toArticleResponses(articles []models.Article) []dto.ArticleResponse {
 		res[i] = toArticleResponse(&articles[i])
 	}
 	return res
+}
+
+func parseIntWithDefault(s string, defaultVal int) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return defaultVal
+	}
+	return n
 }

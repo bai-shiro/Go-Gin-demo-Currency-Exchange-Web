@@ -43,7 +43,7 @@ func SetupRouter(services *service.Services) *gin.Engine {
 	}
 
 	articles := r.Group("/api/articles")
-	articles.GET("", articleController.List)
+	articles.GET("", articleController.ListPage)
 	articles.GET("/:id", articleController.GetByID)
 	articles.GET("/:id/likes", articleController.GetLikes)
 	articles.Use(middlewares.AuthMiddleWare())
