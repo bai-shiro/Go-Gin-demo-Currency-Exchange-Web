@@ -53,17 +53,17 @@ Controller -> Service -> Repository -> MySQL
 
 ## 技术栈
 
-| 层级 | 技术 |
-| --- | --- |
-| 语言 | Go 1.26+ |
-| Web 框架 | Gin v1.12 |
-| ORM | GORM |
-| 数据库 | MySQL 8 |
-| 缓存 | Redis 7 |
-| 认证 | JWT |
-| 密码哈希 | bcrypt |
-| 配置管理 | Viper |
-| 部署 | Docker / Docker Compose |
+| 层级     | 技术                    |
+| -------- | ----------------------- |
+| 语言     | Go 1.26+                |
+| Web 框架 | Gin v1.12               |
+| ORM      | GORM                    |
+| 数据库   | MySQL 8                 |
+| 缓存     | Redis 7                 |
+| 认证     | JWT                     |
+| 密码哈希 | bcrypt                  |
+| 配置管理 | Viper                   |
+| 部署     | Docker / Docker Compose |
 
 ---
 
@@ -285,14 +285,14 @@ REDIS_PORT=6379
 
 当前错误码：
 
-| code | message | HTTP 状态 |
-| --- | --- | --- |
-| 0 | success | 200 / 201 |
-| 40001 | invalid params | 400 |
-| 40101 | unauthorized | 401 |
-| 40301 | forbidden | 403 |
-| 40401 | not found | 404 |
-| 50001 | internal server error | 500 |
+| code  | message               | HTTP 状态 |
+| ----- | --------------------- | --------- |
+| 0     | success               | 200 / 201 |
+| 40001 | invalid params        | 400       |
+| 40101 | unauthorized          | 401       |
+| 40301 | forbidden             | 403       |
+| 40401 | not found             | 404       |
+| 50001 | internal server error | 500       |
 
 ---
 
@@ -300,10 +300,10 @@ REDIS_PORT=6379
 
 ### 认证接口
 
-| 方法 | 路径 | 说明 | 认证 |
-| --- | --- | --- | --- |
-| POST | `/api/auth/register` | 用户注册 | 否 |
-| POST | `/api/auth/login` | 用户登录 | 否 |
+| 方法 | 路径                 | 说明     | 认证 |
+| ---- | -------------------- | -------- | ---- |
+| POST | `/api/auth/register` | 用户注册 | 否   |
+| POST | `/api/auth/login`    | 用户登录 | 否   |
 
 请求体：
 
@@ -328,10 +328,10 @@ REDIS_PORT=6379
 
 ### 汇率接口
 
-| 方法 | 路径 | 说明 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/exchangeRates` | 查询汇率列表 | 否 |
-| POST | `/api/exchangeRates` | 创建汇率 | 是 |
+| 方法 | 路径                 | 说明         | 认证 |
+| ---- | -------------------- | ------------ | ---- |
+| GET  | `/api/exchangeRates` | 查询汇率列表 | 否   |
+| POST | `/api/exchangeRates` | 创建汇率     | 是   |
 
 创建汇率请求体：
 
@@ -345,15 +345,15 @@ REDIS_PORT=6379
 
 ### 文章接口
 
-| 方法 | 路径 | 说明 | 认证 |
-| --- | --- | --- | --- |
-| GET | `/api/articles` | 查询文章列表 | 否 |
-| GET | `/api/articles/:id` | 查询文章详情 | 否 |
-| GET | `/api/articles/:id/likes` | 查询文章点赞数 | 否 |
-| POST | `/api/articles` | 创建文章 | 是 |
-| PUT | `/api/articles/:id` | 更新文章 | 是 |
-| DELETE | `/api/articles/:id` | 删除文章 | 是 |
-| POST | `/api/articles/:id/like` | 点赞文章 | 是 |
+| 方法   | 路径                                | 说明               | 认证 |
+| ------ | ----------------------------------- | ------------------ | ---- |
+| GET    | `/api/articles?page=1&page_size=10` | 查询文章列表(分页) | 否   |
+| GET    | `/api/articles/:id`                 | 查询文章详情       | 否   |
+| GET    | `/api/articles/:id/likes`           | 查询文章点赞数     | 否   |
+| POST   | `/api/articles`                     | 创建文章           | 是   |
+| PUT    | `/api/articles/:id`                 | 更新文章           | 是   |
+| DELETE | `/api/articles/:id`                 | 删除文章           | 是   |
+| POST   | `/api/articles/:id/like`            | 点赞文章           | 是   |
 
 创建 / 更新文章请求体：
 
