@@ -62,7 +62,7 @@ func (c *ArticleController) Delete(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, gin.H{"message" : "successfully deleted the article"})
+	response.Success(ctx, gin.H{"message": "successfully deleted the article"})
 }
 
 func (c *ArticleController) GetByID(ctx *gin.Context) {
@@ -95,42 +95,58 @@ func (c *ArticleController) ListPage(ctx *gin.Context) {
 	}
 
 	response.Success(ctx, response.Page{
-		Page: page,
+		Page:     page,
 		PageSize: pageSize,
-		Total: total,
-		List: toArticleResponses(articles),
+		Total:    total,
+		List:     toArticleResponses(articles),
 	})
 }
 
 func (c *ArticleController) Like(ctx *gin.Context) {
 	articleID := ctx.Param("id")
 
-	if err := c.articles.Like(articleID); err != nil {
-		response.Error(ctx, apperrors.ErrInternal)
+	usernameValue, ok := ctx.Get("username")
+	if !ok {
+		response.Error(ctx, apperrors.ErrUnauthorized)
 		return
 	}
 
-	response.Success(ctx, gin.H{"message" : "successfully liked the article"})
-}
+	username, ok := usernameValue.(string)
+	if !ok || username == "" {
+		response.Error(ctx, apperrors.ErrUnauthorized)
+		return
+	}
 
-func (c *ArticleController) GetLikes(ctx *gin.Context) {
-	articleID := ctx.Param("id")
-
-	likes, err := c.articles.GetLikes(articleID); 
+	liked, likes, err := c.articles.Like(articleID, username)
 	if err != nil {
 		response.Error(ctx, apperrors.ErrInternal)
 		return
 	}
 
-	response.Success(ctx, gin.H{"likes" : likes})
+	response.Success(ctx, gin.H{
+		"liked": liked,
+		"likes": likes,
+	})
+}
+
+func (c *ArticleController) GetLikes(ctx *gin.Context) {
+	articleID := ctx.Param("id")
+
+	likes, err := c.articles.GetLikes(articleID)
+	if err != nil {
+		response.Error(ctx, apperrors.ErrInternal)
+		return
+	}
+
+	response.Success(ctx, gin.H{"likes": likes})
 }
 
 func toArticleResponse(article *models.Article) dto.ArticleResponse {
 	return dto.ArticleResponse{
-		ID: article.ID, 
-		Title: article.Title, 
-		Content: article.Content, 
-		Preview: article.Preview, 
+		ID:      article.ID,
+		Title:   article.Title,
+		Content: article.Content,
+		Preview: article.Preview,
 	}
 }
 
