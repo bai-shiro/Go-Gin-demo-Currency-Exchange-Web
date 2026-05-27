@@ -18,9 +18,9 @@ type Config struct {
 		Port string `mapstructure:"port"`
 	}
 	Database struct {
-		Dsn     string `mapstructure:"dsn"`
-		MaxIdleConns int `mapstructure:"maxIdleConns"`
-		MaxOpenConns int `mapstructure:"maxOpenConns"`
+		Dsn          string `mapstructure:"dsn"`
+		MaxIdleConns int    `mapstructure:"maxIdleConns"`
+		MaxOpenConns int    `mapstructure:"maxOpenConns"`
 	}
 	Cache struct {
 		Addr     string `mapstructure:"addr"`
@@ -28,13 +28,18 @@ type Config struct {
 		DB       int    `mapstructure:"db"`
 	} `mapstructure:"cache"`
 
-	Db *gorm.DB
+	JWT struct {
+		Secret string        `mapstructure:"secret"`
+		TTL    time.Duration `mapstructure:"ttl"`
+	} `mapstructure:"jwt"`
+
+	Db      *gorm.DB
 	RedisDB *redis.Client
 }
 
 var appConfig *Config
 
-func InitConfig() (*Config, error){
+func InitConfig() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
 	viper.AddConfigPath("./configs")

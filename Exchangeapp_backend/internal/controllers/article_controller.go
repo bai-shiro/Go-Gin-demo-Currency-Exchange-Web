@@ -105,19 +105,19 @@ func (c *ArticleController) ListPage(ctx *gin.Context) {
 func (c *ArticleController) Like(ctx *gin.Context) {
 	articleID := ctx.Param("id")
 
-	usernameValue, ok := ctx.Get("username")
+	userIDValue, ok := ctx.Get("userID")
 	if !ok {
 		response.Error(ctx, apperrors.ErrUnauthorized)
 		return
 	}
 
-	username, ok := usernameValue.(string)
-	if !ok || username == "" {
+	userID, ok := userIDValue.(uint)
+	if !ok || userID == 0 {
 		response.Error(ctx, apperrors.ErrUnauthorized)
 		return
 	}
 
-	liked, likes, err := c.articles.Like(articleID, username)
+	liked, likes, err := c.articles.Like(articleID, userID)
 	if err != nil {
 		response.Error(ctx, apperrors.ErrInternal)
 		return

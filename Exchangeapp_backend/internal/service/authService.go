@@ -5,17 +5,21 @@ import (
 	"exchangeapp/internal/models"
 	"exchangeapp/internal/repository"
 	"exchangeapp/internal/utils"
+	"exchangeapp/pkg/jwtauth"
+	"time"
 )
 
 type UserStore struct {
 }
 
 type AuthService struct {
-	users *repository.UserRepository
+	users     *repository.UserRepository
+	jwtSecret string
+	jwtTTL    time.Duration
 }
 
-func NewAuthService(users *repository.UserRepository) *AuthService {
-	return &AuthService{users: users}
+func NewAuthService(users *repository.UserRepository, jwtSecret string, jwtTTL time.Duration) *AuthService {
+	return &AuthService{users: users, jwtSecret: jwtSecret, jwtTTL: jwtTTL}
 }
 
 func (s *AuthService) Register(username, password string) (string, error) {
@@ -29,12 +33,16 @@ func (s *AuthService) Register(username, password string) (string, error) {
 		Password: hashedPwd,
 	}
 
-	token, err := utils.GenerateJWT(user.Username)
+	if err := s.users.Create(user); err != nil {
+		return "", err
+	}
+
+	token, err := jwtauth.GenerateJWT(user.ID, user.Username, s.jwtSecret, s.jwtTTL)
 	if err != nil {
 		return "", err
 	}
 
-	return token, s.users.Create(user)
+	return token, nil
 }
 
 func (s *AuthService) Login(username string, password string) (string, error) {
@@ -47,7 +55,7 @@ func (s *AuthService) Login(username string, password string) (string, error) {
 		return "", apperrors.ErrUnauthorized
 	}
 
-	token, err := utils.GenerateJWT(user.Username)
+	token, err := jwtauth.GenerateJWT(user.ID, user.Username, s.jwtSecret, s.jwtTTL)
 	if err != nil {
 		return "", apperrors.ErrInternal
 	}

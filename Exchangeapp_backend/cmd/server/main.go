@@ -17,7 +17,7 @@ import (
 func main() {
 	appConfig, err := config.InitConfig()
 	if err != nil {
-		log.Fatalf("init config:%s",err)
+		log.Fatalf("init config:%s", err)
 	}
 
 	// 迁移数据库字段
@@ -31,10 +31,10 @@ func main() {
 
 	// 依赖注入数据库和业务层
 	repos := repository.NewRepositories(appConfig.Db)
-	services := service.NewServices(repos, appConfig.RedisDB)
+	services := service.NewServices(repos, appConfig.RedisDB, appConfig.JWT.Secret, appConfig.JWT.TTL)
 
 	// 注册路由
-	r := router.SetupRouter(services)
+	r := router.SetupRouter(appConfig, services)
 
 	// port := config.AppConfig.App.Port
 

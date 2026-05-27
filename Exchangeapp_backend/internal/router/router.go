@@ -1,6 +1,7 @@
 package router
 
 import (
+	"exchangeapp/internal/config"
 	"exchangeapp/internal/controllers"
 	"exchangeapp/internal/middlewares"
 	"exchangeapp/internal/service"
@@ -10,12 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(services *service.Services) *gin.Engine {
+func SetupRouter(appConfig *config.Config, services *service.Services) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{"GET", "POST"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
@@ -37,7 +38,7 @@ func SetupRouter(services *service.Services) *gin.Engine {
 
 	api := r.Group("/api")
 	api.GET("/exchangeRates", rateController.Latest)
-	api.Use(middlewares.AuthMiddleWare())
+	api.Use(middlewares.AuthMiddleWare(appConfig.JWT.Secret))
 	{
 		api.POST("/exchangeRates", rateController.Create)
 	}
@@ -46,7 +47,7 @@ func SetupRouter(services *service.Services) *gin.Engine {
 	articles.GET("", articleController.ListPage)
 	articles.GET("/:id", articleController.GetByID)
 	articles.GET("/:id/likes", articleController.GetLikes)
-	articles.Use(middlewares.AuthMiddleWare())
+	articles.Use(middlewares.AuthMiddleWare(appConfig.JWT.Secret))
 	{
 		articles.POST("", articleController.Create)
 		articles.PUT("/:id", articleController.Update)

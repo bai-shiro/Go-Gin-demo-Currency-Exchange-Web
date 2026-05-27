@@ -8,6 +8,7 @@ import (
 	"exchangeapp/internal/repository"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -123,9 +124,10 @@ func (s *ArticleService) ListPage(page int, pageSize int) ([]models.Article, int
 	return s.listPageFromDB(page, pageSize, cacheKey)
 }
 
-func (s *ArticleService) Like(id string, username string) (bool, int64, error) {
-	likedUserKey := articleLikedUsersKey(id)
-	likeCountKey := articleLikeKey(id)
+func (s *ArticleService) Like(articleID string, userID uint) (bool, int64, error) {
+	likedUserKey := articleLikedUsersKey(articleID)
+	likeCountKey := articleLikeKey(articleID)
+	userIDStr := strconv.FormatUint(uint64(userID), 10)
 
 	// 使用lua脚本保证redis的原子性
 	const toggleLikeLuaScript = `
@@ -144,7 +146,7 @@ func (s *ArticleService) Like(id string, username string) (bool, int64, error) {
 	end
 	`
 
-	result, err := s.redis.Eval(toggleLikeLuaScript, []string{likedUserKey, likeCountKey}, username).Result()
+	result, err := s.redis.Eval(toggleLikeLuaScript, []string{likedUserKey, likeCountKey}, userIDStr).Result()
 	if err != nil {
 		return false, 0, err
 	}

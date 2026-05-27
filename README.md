@@ -40,8 +40,8 @@ Controller -> Service -> Repository -> MySQL
 - bcrypt 密码哈希存储
 - 汇率数据创建与查询
 - 文章列表、详情、创建、更新、删除
-- Redis 文章列表缓存
-- Redis 文章点赞计数
+- Redis 文章列表分页缓存
+- Redis 文章点赞计数（基于用户 ID 记录点赞状态，使用 Lua 脚本保证点赞/取消点赞原子性）
 - Controller / Service / Repository 分层
 - DTO 请求体与响应体隔离
 - 统一响应结构与业务错误码
@@ -81,7 +81,7 @@ Exchangeapp_backend/
 │   ├── apperrors/
 │   │   └── errors.go                   # 业务错误码与 AppError
 │   ├── config/
-│   │   └── config.go                   # 配置加载、MySQL 初始化、Redis 初始化
+│   │   └── config.go                   # 配置加载、MySQL 初始化、Redis 初始化、JWT 配置
 │   ├── controllers/
 │   │   ├── auth_controller.go          # 注册、登录接口
 │   │   ├── article_controller.go       # 文章 CRUD 与点赞接口
@@ -106,10 +106,13 @@ Exchangeapp_backend/
 │   ├── service/
 │   │   ├── services.go                 # Service 聚合
 │   │   ├── authService.go              # 认证业务
-│   │   ├── articleService.go           # 文章业务、缓存、点赞
+│   │   ├── articleService.go           # 文章业务、分页缓存、Lua 点赞
 │   │   └── rateService.go              # 汇率业务
 │   └── utils/
-│       └── utils.go                    # JWT 生成/解析与 bcrypt 工具函数
+│       └── utils.go                    # bcrypt 密码哈希工具函数
+├── pkg/
+│   └── jwtauth/
+│       └── jwtauth.go                  # JWT 生成/解析、自定义 Claims
 ├── Dockerfile                          # Go 服务镜像构建
 ├── docker-compose.yml                  # backend + MySQL + Redis 编排
 ├── .env.example                        # Docker 环境变量模板
@@ -137,8 +140,8 @@ Exchangeapp_backend/
 config.InitConfig()
   -> 初始化 MySQL / Redis
     -> repository.NewRepositories(appConfig.Db)
-      -> service.NewServices(repos, appConfig.RedisDB)
-        -> router.SetupRouter(services)
+      -> service.NewServices(repos, appConfig.RedisDB, appConfig.JWT.Secret, appConfig.JWT.TTL)
+        -> router.SetupRouter(appConfig, services)
           -> 启动 HTTP Server
 ```
 
@@ -230,6 +233,10 @@ cache:
   addr: 127.0.0.1:6379
   password: ""
   db: 0
+
+jwt:
+  secret: your-secret
+  ttl: 24h
 ```
 
 #### 4. 启动服务
@@ -321,7 +328,7 @@ REDIS_PORT=6379
   "code": 0,
   "message": "success",
   "data": {
-    "token": "Bearer <jwt-token>"
+    "token": "<jwt-token>"
   }
 }
 ```
@@ -380,6 +387,19 @@ REDIS_PORT=6379
 }
 ```
 
+点赞/取消点赞响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "liked": true,
+    "likes": 1
+  }
+}
+```
+
 点赞数响应示例：
 
 ```json
@@ -387,7 +407,7 @@ REDIS_PORT=6379
   "code": 0,
   "message": "success",
   "data": {
-    "likes": "1"
+    "likes": 1
   }
 }
 ```
