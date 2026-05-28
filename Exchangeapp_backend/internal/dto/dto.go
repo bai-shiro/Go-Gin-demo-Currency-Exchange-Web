@@ -38,3 +38,19 @@ type RateResponse struct {
 type AuthResponse struct {
 	Token string `json:"token"`
 }
+
+type LatestRateResponse struct {
+	Base  string  `json:"base"`
+	Quote string  `json:"quote"`
+	Rate  float64 `json:"rate"`
+	Date  string  `json:"date"`
+}
+
+type ConvertResponse struct {
+	Base            string  `json:"base"`
+	Quote           string  `json:"quote"`
+	Amount          float64 `json:"amount"`
+	Rate            float64 `json:"rate"`
+	ConvertedAmount float64 `json:"convertedAmount"`
+	Date            string  `json:"date"`
+}

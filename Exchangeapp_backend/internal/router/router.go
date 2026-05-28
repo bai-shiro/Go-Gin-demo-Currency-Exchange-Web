@@ -38,6 +38,8 @@ func SetupRouter(appConfig *config.Config, services *service.Services) *gin.Engi
 
 	api := r.Group("/api")
 	api.GET("/exchangeRates", rateController.Latest)
+	api.GET("/rates/latest", rateController.LatestPair)
+	api.GET("/convert", rateController.Convert)
 	api.Use(middlewares.AuthMiddleWare(appConfig.JWT.Secret))
 	{
 		api.POST("/exchangeRates", rateController.Create)

@@ -7,7 +7,7 @@
 [![Docker](https://img.shields.io/badge/Docker-supported-2496ED?logo=docker)](https://docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-一个基于 **Go + Gin + GORM + MySQL + Redis + JWT** 的汇率与文章社区后端 API 项目，支持用户注册登录、汇率数据管理、文章发布与互动、Redis 缓存和 Docker Compose 本地部署。
+一个基于 **Go + Gin + GORM + MySQL + Redis + JWT** 的汇率与文章社区后端 API 项目，支持用户注册登录、汇率数据管理(接入第三方实时汇率API)、文章发布与互动、Redis 缓存和 Docker Compose 本地部署。
 
 项目采用模块化单体结构，将 HTTP 接口、业务逻辑和数据访问拆分为 Controller、Service、Repository 三层，并通过 DTO、统一响应结构和业务错误码规范接口输出。
 
@@ -40,9 +40,10 @@ Controller -> Service -> Repository -> MySQL
 
 - 用户注册与登录，基于 JWT 的接口鉴权
 - bcrypt 密码哈希存储
-- 汇率数据创建与查询
+- 汇率数据创建与查询，支持外部汇率 API 查询与金额换算
 - 文章列表、详情、创建、更新、删除
 - Redis 文章列表分页缓存
+- Redis 汇率热点缓存，缓存最新货币对汇率
 - Redis 文章点赞计数（基于用户 ID 记录点赞状态，使用 Lua 脚本保证点赞/取消点赞原子性）
 - Controller / Service / Repository 分层
 - DTO 请求体与响应体隔离
@@ -82,13 +83,16 @@ Exchangeapp_backend/
 ├── internal/
 │   ├── apperrors/
 │   │   └── errors.go                   # 业务错误码与 AppError
+│   ├── client/
+│   │   └── exchange/
+│   │       └── frankfurter.go          # Frankfurter 外部汇率 API 客户端
 │   ├── config/
 │   │   └── config.go                   # 配置加载、MySQL 初始化、Redis 初始化、JWT 配置
 │   ├── controllers/
 │   │   ├── auth_controller.go          # 注册、登录接口
 │   │   ├── article_controller.go       # 文章 CRUD 与点赞接口
 │   │   ├── controllers.go              # Controller 聚合/占位
-│   │   └── exchange_rate_controller.go # 汇率查询与创建接口
+│   │   └── exchange_rate_controller.go # 汇率查询、创建与换算接口
 │   ├── dto/
 │   │   └── dto.go                      # 请求 DTO 与响应 DTO
 │   ├── middlewares/
@@ -110,7 +114,8 @@ Exchangeapp_backend/
 │       ├── articleLike_test.go         # Redis Lua 点赞/取消点赞集成测试
 │       ├── articleService.go           # 文章业务、分页缓存、Lua 点赞
 │       ├── authService.go              # 认证业务
-│       ├── rateService.go              # 汇率业务
+│       ├── rateService.go              # 汇率业务、热点缓存、换算
+│       ├── rateService_test.go         # 汇率缓存与换算测试
 │       └── services.go                 # Service 聚合
 ├── pkg/
 │   ├── jwtauth/
@@ -342,10 +347,12 @@ REDIS_PORT=6379
 
 ### 汇率接口
 
-| 方法 | 路径                   | 说明         | 认证 |
-| ---- | ---------------------- | ------------ | ---- |
-| GET  | `/api/exchangeRates` | 查询汇率列表 | 否   |
-| POST | `/api/exchangeRates` | 创建汇率     | 是   |
+| 方法 | 路径                                           | 说明               | 认证 |
+| ---- | ---------------------------------------------- | ------------------ | ---- |
+| GET  | `/api/exchangeRates`                         | 查询已录入汇率列表 | 否   |
+| GET  | `/api/rates/latest?base=USD&quote=CNY`       | 查询最新货币对汇率 | 否   |
+| GET  | `/api/convert?base=USD&quote=CNY&amount=100` | 汇率换算           | 否   |
+| POST | `/api/exchangeRates`                         | 创建汇率           | 是   |
 
 创建汇率请求体：
 
@@ -477,7 +484,7 @@ curl -X POST http://localhost:3000/api/articles/1/like \
 
 - `pkg/jwtauth`：覆盖 JWT 生成解析、错误密钥、缺少 Bearer 前缀、过期 token、缺少 `user_id` claim。
 - `pkg/passwordbcrypt`：覆盖密码哈希、正确密码校验和错误密码拒绝。
-- `internal/service`：覆盖 Redis Lua 点赞/取消点赞 toggle，以及多用户点赞计数场景。
+- `internal/service`：覆盖 Redis Lua 点赞/取消点赞 toggle、多用户点赞计数、汇率缓存命中/回源、坏缓存回源和汇率换算场景。
 
 运行测试：
 
