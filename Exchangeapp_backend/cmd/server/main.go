@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	config "exchangeapp/internal/config"
+	"exchangeapp/internal/config"
 	"exchangeapp/internal/models"
 	"exchangeapp/internal/repository"
 	"exchangeapp/internal/router"

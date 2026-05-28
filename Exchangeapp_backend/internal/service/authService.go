@@ -4,8 +4,8 @@ import (
 	"exchangeapp/internal/apperrors"
 	"exchangeapp/internal/models"
 	"exchangeapp/internal/repository"
-	"exchangeapp/internal/utils"
 	"exchangeapp/pkg/jwtauth"
+	"exchangeapp/pkg/passwordbcrypt"
 	"time"
 )
 
@@ -23,7 +23,7 @@ func NewAuthService(users *repository.UserRepository, jwtSecret string, jwtTTL t
 }
 
 func (s *AuthService) Register(username, password string) (string, error) {
-	hashedPwd, err := utils.HashPassword(password)
+	hashedPwd, err := passwordbcrypt.HashPassword(password)
 	if err != nil {
 		return "", err
 	}
@@ -51,7 +51,7 @@ func (s *AuthService) Login(username string, password string) (string, error) {
 		return "", apperrors.ErrUnauthorized
 	}
 
-	if !utils.CheckPassword(password, user.Password) {
+	if !passwordbcrypt.CheckPassword(password, user.Password) {
 		return "", apperrors.ErrUnauthorized
 	}
 

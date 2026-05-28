@@ -6,7 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-//
 type ArticleRepository struct {
 	db *gorm.DB
 }
@@ -16,7 +15,7 @@ func NewArticleRepository(db *gorm.DB) *ArticleRepository {
 }
 
 func (r *ArticleRepository) Create(article *models.Article) error {
-	return  r.db.Create(article).Error
+	return r.db.Create(article).Error
 }
 
 func (r *ArticleRepository) Update(article *models.Article) error {
@@ -29,13 +28,13 @@ func (r *ArticleRepository) Delete(article *models.Article) error {
 
 func (r *ArticleRepository) FindByID(id string) (*models.Article, error) {
 	var article models.Article
-	if err := r.db.Where("id=?", id).First(&article).Error; err != nil{
+	if err := r.db.Where("id=?", id).First(&article).Error; err != nil {
 		return nil, err
 	}
 	return &article, nil
 }
 
-func (r *ArticleRepository) FindPage(page int, pageSize int) ([]models.Article, int64,error) {
+func (r *ArticleRepository) FindPage(page int, pageSize int) ([]models.Article, int64, error) {
 	var articles []models.Article
 	var total int64
 

@@ -25,5 +25,5 @@ func (r *RateRepository) Latest() ([]models.ExchangeRate, error) {
 	if err := r.db.Find(&exchangeRates).Error; err != nil {
 		return nil, err
 	}
-	return  exchangeRates, nil
+	return exchangeRates, nil
 }

@@ -10,10 +10,10 @@ type Repositories struct {
 	Rates    *RateRepository
 }
 
-func NewRepositories(db *gorm.DB) *Repositories{
+func NewRepositories(db *gorm.DB) *Repositories {
 	return &Repositories{
-		Users: NewUserRepository(db),
+		Users:    NewUserRepository(db),
 		Articles: NewArticleRepository(db),
-		Rates: NewRateRepository(db),
+		Rates:    NewRateRepository(db),
 	}
 }

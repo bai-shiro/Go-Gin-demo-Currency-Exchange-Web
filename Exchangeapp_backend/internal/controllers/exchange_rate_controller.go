@@ -15,7 +15,7 @@ type RateController struct {
 }
 
 func NewRateController(rates *service.RateService) *RateController {
-	return  &RateController{rates: rates}
+	return &RateController{rates: rates}
 }
 
 func (c *RateController) Create(ctx *gin.Context) {
@@ -47,9 +47,9 @@ func (c *RateController) Latest(ctx *gin.Context) {
 
 func toRateResponse(rate *models.ExchangeRate) dto.RateResponse {
 	return dto.RateResponse{
-		FromCurrency: rate.FromCurrency, 
-		ToCurrency: rate.ToCurrency, 
-		Rate: rate.Rate,
+		FromCurrency: rate.FromCurrency,
+		ToCurrency:   rate.ToCurrency,
+		Rate:         rate.Rate,
 	}
 }
 

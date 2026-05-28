@@ -1,4 +1,4 @@
-package utils
+package passwordbcrypt
 
 import (
 	"golang.org/x/crypto/bcrypt"

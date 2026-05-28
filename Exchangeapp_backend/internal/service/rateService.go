@@ -16,7 +16,7 @@ type RateService struct {
 }
 
 func NewRateService(rates *repository.RateRepository, redisClient *redis.Client) *RateService {
-	return  &RateService{rates: rates, redis: redisClient}
+	return &RateService{rates: rates, redis: redisClient}
 }
 
 func (s *RateService) Create(fromCurrency string, toCurrency string, rate float64) (*models.ExchangeRate, error) {

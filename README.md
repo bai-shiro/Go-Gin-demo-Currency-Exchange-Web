@@ -30,6 +30,8 @@ Controller -> Service -> Repository -> MySQL
 - [配置说明](#配置说明)
 - [统一响应格式](#统一响应格式)
 - [API 文档](#api-文档)
+- [测试验证](#测试验证)
+- [压测记录](#压测记录)
 - [License](#license)
 
 ---
@@ -75,7 +77,7 @@ Exchangeapp_backend/
 │   └── server/
 │       └── main.go                     # 程序入口：依赖装配、HTTP 服务启动、优雅关停
 ├── configs/
-│   ├── config.yml                      # 本地配置文件
+│   ├── config.yml                      # 本地配置文件（不建议提交敏感配置）
 │   └── config.yml.example              # 配置模板
 ├── internal/
 │   ├── apperrors/
@@ -85,37 +87,42 @@ Exchangeapp_backend/
 │   ├── controllers/
 │   │   ├── auth_controller.go          # 注册、登录接口
 │   │   ├── article_controller.go       # 文章 CRUD 与点赞接口
+│   │   ├── controllers.go              # Controller 聚合/占位
 │   │   └── exchange_rate_controller.go # 汇率查询与创建接口
 │   ├── dto/
 │   │   └── dto.go                      # 请求 DTO 与响应 DTO
 │   ├── middlewares/
 │   │   └── auth_middleware.go          # JWT 鉴权中间件
 │   ├── models/
-│   │   ├── user.go                     # 用户模型
 │   │   ├── article.go                  # 文章模型
-│   │   └── exchange_rate.go            # 汇率模型
+│   │   ├── exchange_rate.go            # 汇率模型
+│   │   └── user.go                     # 用户模型
 │   ├── repository/
-│   │   ├── repositories.go             # Repository 聚合
-│   │   ├── userRepository.go           # 用户数据访问
 │   │   ├── articleRepository.go        # 文章数据访问
-│   │   └── rateRepository.go           # 汇率数据访问
+│   │   ├── rateRepository.go           # 汇率数据访问
+│   │   ├── repositories.go             # Repository 聚合
+│   │   └── userRepository.go           # 用户数据访问
 │   ├── response/
 │   │   └── response.go                 # 统一响应封装
 │   ├── router/
 │   │   └── router.go                   # 路由注册与 CORS 中间件
-│   ├── service/
-│   │   ├── services.go                 # Service 聚合
-│   │   ├── authService.go              # 认证业务
-│   │   ├── articleService.go           # 文章业务、分页缓存、Lua 点赞
-│   │   └── rateService.go              # 汇率业务
-│   └── utils/
-│       └── utils.go                    # bcrypt 密码哈希工具函数
+│   └── service/
+│       ├── articleLike_test.go         # Redis Lua 点赞/取消点赞集成测试
+│       ├── articleService.go           # 文章业务、分页缓存、Lua 点赞
+│       ├── authService.go              # 认证业务
+│       ├── rateService.go              # 汇率业务
+│       └── services.go                 # Service 聚合
 ├── pkg/
-│   └── jwtauth/
-│       └── jwtauth.go                  # JWT 生成/解析、自定义 Claims
+│   ├── jwtauth/
+│   │   ├── jwtauth.go                  # JWT 生成/解析、自定义 Claims
+│   │   └── jwtauth_test.go             # JWT 单元测试
+│   └── passwordbcrypt/
+│       ├── passwordBcrypt.go           # bcrypt 密码哈希工具函数
+│       └── passwordBcrypt_test.go      # bcrypt 单元测试
+├── .dockerignore                       # Docker 构建忽略规则
+├── .env.example                        # Docker 环境变量模板
 ├── Dockerfile                          # Go 服务镜像构建
 ├── docker-compose.yml                  # backend + MySQL + Redis 编排
-├── .env.example                        # Docker 环境变量模板
 ├── go.mod
 └── go.sum
 ```
@@ -307,8 +314,8 @@ REDIS_PORT=6379
 
 ### 认证接口
 
-| 方法 | 路径                 | 说明     | 认证 |
-| ---- | -------------------- | -------- | ---- |
+| 方法 | 路径                   | 说明     | 认证 |
+| ---- | ---------------------- | -------- | ---- |
 | POST | `/api/auth/register` | 用户注册 | 否   |
 | POST | `/api/auth/login`    | 用户登录 | 否   |
 
@@ -335,8 +342,8 @@ REDIS_PORT=6379
 
 ### 汇率接口
 
-| 方法 | 路径                 | 说明         | 认证 |
-| ---- | -------------------- | ------------ | ---- |
+| 方法 | 路径                   | 说明         | 认证 |
+| ---- | ---------------------- | ------------ | ---- |
 | GET  | `/api/exchangeRates` | 查询汇率列表 | 否   |
 | POST | `/api/exchangeRates` | 创建汇率     | 是   |
 
@@ -352,8 +359,8 @@ REDIS_PORT=6379
 
 ### 文章接口
 
-| 方法   | 路径                                | 说明               | 认证 |
-| ------ | ----------------------------------- | ------------------ | ---- |
+| 方法   | 路径                                  | 说明               | 认证 |
+| ------ | ------------------------------------- | ------------------ | ---- |
 | GET    | `/api/articles?page=1&page_size=10` | 查询文章列表(分页) | 否   |
 | GET    | `/api/articles/:id`                 | 查询文章详情       | 否   |
 | GET    | `/api/articles/:id/likes`           | 查询文章点赞数     | 否   |
@@ -461,6 +468,62 @@ curl http://localhost:3000/api/articles
 curl -X POST http://localhost:3000/api/articles/1/like \
   -H "Authorization: Bearer <jwt-token>"
 ```
+
+---
+
+## 测试验证
+
+当前项目补充了认证、密码哈希和 Redis 点赞核心链路测试：
+
+- `pkg/jwtauth`：覆盖 JWT 生成解析、错误密钥、缺少 Bearer 前缀、过期 token、缺少 `user_id` claim。
+- `pkg/passwordbcrypt`：覆盖密码哈希、正确密码校验和错误密码拒绝。
+- `internal/service`：覆盖 Redis Lua 点赞/取消点赞 toggle，以及多用户点赞计数场景。
+
+运行测试：
+
+```bash
+cd Exchangeapp_backend
+go test ./...
+```
+
+本次验证结果：
+
+```text
+ok   exchangeapp/internal/service
+ok   exchangeapp/pkg/jwtauth
+ok   exchangeapp/pkg/passwordbcrypt
+```
+
+---
+
+## 压测记录
+
+压测目标：文章分页列表接口。
+
+```text
+GET /api/articles?page=1&page_size=10
+```
+
+压测环境：Docker 后端容器内访问本机服务，预先创建 100 篇测试文章，并先请求一次接口预热 Redis 分页缓存。
+
+压测参数：
+
+```text
+requests: 1000
+concurrency: 50
+```
+
+压测结果：
+
+```text
+seed_articles_created=100
+warmup_duration=2.270321ms
+requests=1000 concurrency=50 elapsed=166.934669ms qps=5990.37
+latency_avg=7.768099ms p50=5.447397ms p95=29.14436ms p99=33.863744ms max=53.363188ms
+status_counts=map[200:1000] errors=0
+```
+
+说明：该结果主要验证 Redis 命中场景下文章分页接口的吞吐和延迟表现。
 
 ---
 

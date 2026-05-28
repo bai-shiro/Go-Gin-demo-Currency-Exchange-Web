@@ -9,31 +9,31 @@ import (
 )
 
 type Body struct {
-	Code    int `json:"code"`
-	Message string `json:"message"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
 }
 
 type Page struct {
-	Page int `json:"page"`
-	PageSize int `json:"page_size"`
-	Total int64 `json:"total"`
-	List interface{} `json:"list"`
+	Page     int         `json:"page"`
+	PageSize int         `json:"page_size"`
+	Total    int64       `json:"total"`
+	List     interface{} `json:"list"`
 }
 
 func Success(ctx *gin.Context, data interface{}) {
 	ctx.JSON(http.StatusOK, Body{
-		Code: 0,
+		Code:    0,
 		Message: "success",
-		Data: data,
+		Data:    data,
 	})
 }
 
 func Created(ctx *gin.Context, data interface{}) {
 	ctx.JSON(http.StatusCreated, Body{
-		Code: 0,
+		Code:    0,
 		Message: "success",
-		Data: data,
+		Data:    data,
 	})
 }
 
@@ -41,7 +41,7 @@ func Error(ctx *gin.Context, err error) {
 	var appErr *apperrors.AppError
 	if errors.As(err, &appErr) {
 		ctx.JSON(appErr.HTTPStatus, Body{
-			Code: appErr.Code,
+			Code:    appErr.Code,
 			Message: appErr.Message,
 		})
 		return
@@ -49,7 +49,7 @@ func Error(ctx *gin.Context, err error) {
 
 	appErr = apperrors.ErrInternal
 	ctx.JSON(appErr.HTTPStatus, Body{
-		Code: appErr.Code,
+		Code:    appErr.Code,
 		Message: appErr.Message,
 	})
 }
