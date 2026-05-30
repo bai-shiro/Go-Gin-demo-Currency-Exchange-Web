@@ -36,13 +36,14 @@ func SetupRouter(appConfig *config.Config, services *service.Services) *gin.Engi
 		auth.POST("/register", authController.Register)
 	}
 
-	api := r.Group("/api")
-	api.GET("/exchangeRates", rateController.Latest)
-	api.GET("/rates/latest", rateController.LatestPair)
-	api.GET("/convert", rateController.Convert)
-	api.Use(middlewares.AuthMiddleWare(appConfig.JWT.Secret))
+	rates := r.Group("/api/rates")
+	rates.GET("/latest/all", rateController.Latest)
+	rates.GET("/latest", rateController.LatestPair)
+	rates.GET("/convert", rateController.Convert)
+	rates.Use(middlewares.AuthMiddleWare(appConfig.JWT.Secret))
 	{
-		api.POST("/exchangeRates", rateController.Create)
+		rates.POST("/create", rateController.Create)
+		rates.GET("/history", rateController.History)
 	}
 
 	articles := r.Group("/api/articles")

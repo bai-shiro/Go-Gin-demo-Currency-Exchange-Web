@@ -7,15 +7,17 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 const DefaultFrankfurterBaseURL = "https://api.frankfurter.dev"
 
 type LatestRate struct {
-	Base  string  `json:"base"`
-	Quote string  `json:"quote"`
-	Rate  float64 `json:"rate"`
-	Date  string  `json:"date"`
+	Base  string          `json:"base"`
+	Quote string          `json:"quote"`
+	Rate  decimal.Decimal `json:"rate"`
+	Date  string          `json:"date"`
 }
 
 type Client interface {
@@ -65,16 +67,16 @@ func (c *FrankfurterClient) FetchLatest(ctx context.Context, base string, quote 
 
 	// 字段检查
 	var payload struct {
-		Base  string  `json:"base"`
-		Quote string  `json:"quote"`
-		Rate  float64 `json:"rate"`
-		Date  string  `json:"date"`
+		Base  string          `json:"base"`
+		Quote string          `json:"quote"`
+		Rate  decimal.Decimal `json:"rate"`
+		Date  string          `json:"date"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, err
 	}
-	if payload.Rate <= 0 {
-		return nil, fmt.Errorf("invalid exchange rate %f", payload.Rate)
+	if payload.Rate.LessThanOrEqual(decimal.Zero) {
+		return nil, fmt.Errorf("invalid exchange rate %v", payload.Rate)
 	}
 
 	return &LatestRate{

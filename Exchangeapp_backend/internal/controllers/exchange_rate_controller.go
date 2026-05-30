@@ -6,9 +6,9 @@ import (
 	"exchangeapp/internal/models"
 	"exchangeapp/internal/response"
 	"exchangeapp/internal/service"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 )
 
 type RateController struct {
@@ -67,7 +67,7 @@ func (c *RateController) LatestPair(ctx *gin.Context) {
 func (c *RateController) Convert(ctx *gin.Context) {
 	base := ctx.Query("base")
 	quote := ctx.Query("quote")
-	amount, err := strconv.ParseFloat(ctx.Query("amount"), 64)
+	amount, err := decimal.NewFromString(ctx.Query("amount"))
 	if err != nil {
 		response.Error(ctx, apperrors.ErrInvalidParams)
 		return
@@ -87,6 +87,21 @@ func (c *RateController) Convert(ctx *gin.Context) {
 		ConvertedAmount: converted.ConvertedAmount,
 		Date:            converted.Date,
 	})
+}
+
+func (c *RateController) History(ctx *gin.Context) {
+	base := ctx.Query("base")
+	quote := ctx.Query("quote")
+	startDateStr := ctx.Query("startDate")
+	endDateStr := ctx.Query("endDate")
+
+	rates, err := c.rates.History(base, quote, startDateStr, endDateStr)
+	if err != nil {
+		response.Error(ctx, err)
+		return
+	}
+
+	response.Success(ctx, toRateResponses(rates))
 }
 
 func toRateResponse(rate *models.ExchangeRate) dto.RateResponse {

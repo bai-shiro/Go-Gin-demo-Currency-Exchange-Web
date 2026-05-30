@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/shopspring/decimal"
+
 type ArticleRequest struct {
 	Title   string `json:"title" binding:"required"`
 	Content string `json:"content" binding:"required"`
@@ -43,17 +45,17 @@ type AuthResponse struct {
 }
 
 type LatestRateResponse struct {
-	Base  string  `json:"base"`
-	Quote string  `json:"quote"`
-	Rate  float64 `json:"rate"`
-	Date  string  `json:"date"`
+	Base  string          `json:"base"`
+	Quote string          `json:"quote"`
+	Rate  decimal.Decimal `json:"rate"`
+	Date  string          `json:"date"`
 }
 
 type ConvertResponse struct {
-	Base            string  `json:"base"`
-	Quote           string  `json:"quote"`
-	Amount          float64 `json:"amount"`
-	Rate            float64 `json:"rate"`
-	ConvertedAmount float64 `json:"convertedAmount"`
-	Date            string  `json:"date"`
+	Base            string          `json:"base"`
+	Quote           string          `json:"quote"`
+	Amount          decimal.Decimal `json:"amount"`
+	Rate            decimal.Decimal `json:"rate"`
+	ConvertedAmount decimal.Decimal `json:"convertedAmount"`
+	Date            string          `json:"date"`
 }
