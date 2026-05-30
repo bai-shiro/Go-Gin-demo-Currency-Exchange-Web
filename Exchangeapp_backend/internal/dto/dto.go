@@ -7,9 +7,10 @@ type ArticleRequest struct {
 }
 
 type CreateRateRequest struct {
-	FromCurrency string  `json:"fromCurrency" binding:"required"`
-	ToCurrency   string  `json:"toCurrency" binding:"required"`
-	Rate         float64 `json:"rate" binding:"required"`
+	FromCurrency string `json:"fromCurrency" binding:"required,len=3"`
+	ToCurrency   string `json:"toCurrency" binding:"required,len=3"`
+	Rate         string `json:"rate" binding:"required"`
+	RateDate     string `json:"rateDate" binding:"omitempty"` // 格式：2006-01-02
 }
 
 type RegisterRequest struct {
@@ -30,9 +31,11 @@ type ArticleResponse struct {
 }
 
 type RateResponse struct {
-	FromCurrency string  `json:"fromCurrency"`
-	ToCurrency   string  `json:"toCurrency"`
-	Rate         float64 `json:"rate"`
+	FromCurrency string `json:"fromCurrency"`
+	ToCurrency   string `json:"toCurrency"`
+	Rate         string `json:"rate"`
+	RateDate     string `json:"rateDate"`
+	FetchedAt    string `json:"fetchedAt"`
 }
 
 type AuthResponse struct {

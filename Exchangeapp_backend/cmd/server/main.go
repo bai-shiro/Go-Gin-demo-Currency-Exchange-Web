@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"exchangeapp/internal/config"
-	"exchangeapp/internal/models"
+	"exchangeapp/internal/dbmigrate"
 	"exchangeapp/internal/repository"
 	"exchangeapp/internal/router"
 	"exchangeapp/internal/service"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,13 +21,11 @@ func main() {
 		log.Fatalf("init config:%s", err)
 	}
 
-	// 迁移数据库字段
-	if err := appConfig.Db.AutoMigrate(
-		&models.User{},
-		&models.Article{},
-		&models.ExchangeRate{},
-	); err != nil {
-		log.Fatal("database migration failed error:", err)
+	// 根据配置自动是否迁移数据库
+	if appConfig.Database.AutoMigrate {
+		log.Println("start database migration")
+		dbmigrate.RunMigrations(fmt.Sprintf("mysql://%s", appConfig.Database.Dsn))
+		log.Println("database migration success")
 	}
 
 	// 依赖注入数据库和业务层

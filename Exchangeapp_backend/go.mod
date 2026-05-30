@@ -7,6 +7,8 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/viper v1.21.0
 	golang.org/x/crypto v0.50.0
 	gorm.io/driver/mysql v1.6.0

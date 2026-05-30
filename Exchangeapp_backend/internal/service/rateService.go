@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -38,10 +39,27 @@ func NewRateService(rates *repository.RateRepository, redisClient *redis.Client,
 	return &RateService{rates: rates, redis: redisClient, exchangeClient: exchangeClient}
 }
 
-func (s *RateService) Create(fromCurrency string, toCurrency string, rate float64) (*models.ExchangeRate, error) {
-	exchangeRate := &models.ExchangeRate{FromCurrency: fromCurrency, ToCurrency: toCurrency, Rate: rate}
-	err := s.rates.Create(exchangeRate)
+func (s *RateService) Create(fromCurrency string, toCurrency string, rateStr string, rateDateStr string) (*models.ExchangeRate, error) {
+	fromCurrency, toCurrency, err := normalizeCurrencyPair(fromCurrency, toCurrency)
 	if err != nil {
+		return nil, err
+	}
+
+	rate, err := decimal.NewFromString(rateStr)
+	if err != nil || rate.LessThanOrEqual(decimal.Zero) {
+		return nil, apperrors.ErrInvalidParams
+	}
+
+	rateDate := time.Now()
+	if strings.TrimSpace(rateDateStr) != "" {
+		rateDate, err = time.Parse("2006-01-02", rateDateStr)
+		if err != nil {
+			return nil, apperrors.ErrInvalidParams
+		}
+	}
+
+	exchangeRate := &models.ExchangeRate{FromCurrency: fromCurrency, ToCurrency: toCurrency, Rate: rate, RateDate: rateDate}
+	if err := s.rates.Create(exchangeRate); err != nil {
 		return nil, err
 	}
 	return exchangeRate, nil

@@ -27,7 +27,7 @@ func (c *RateController) Create(ctx *gin.Context) {
 		return
 	}
 
-	exchangeRate, err := c.rates.Create(req.FromCurrency, req.ToCurrency, req.Rate)
+	exchangeRate, err := c.rates.Create(req.FromCurrency, req.ToCurrency, req.Rate, req.RateDate)
 	if err != nil {
 		response.Error(ctx, err)
 		return
@@ -93,7 +93,9 @@ func toRateResponse(rate *models.ExchangeRate) dto.RateResponse {
 	return dto.RateResponse{
 		FromCurrency: rate.FromCurrency,
 		ToCurrency:   rate.ToCurrency,
-		Rate:         rate.Rate,
+		Rate:         rate.Rate.String(),
+		RateDate:     rate.RateDate.Format("2006-01-02"),
+		FetchedAt:    rate.FetchedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 

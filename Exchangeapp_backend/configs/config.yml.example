@@ -6,6 +6,7 @@ database:
   dsn: root:123456@tcp(127.0.0.1:3306)/currency_exchange_db?charset=utf8mb4&parseTime=True&loc=Local
   maxIdleConns: 11
   maxOpenConns: 114
+  autoMigrate: false
 
 cache:
   addr: 127.0.0.1:6379
