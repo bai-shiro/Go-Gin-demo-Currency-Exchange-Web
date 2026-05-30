@@ -7,7 +7,7 @@
 [![Docker](https://img.shields.io/badge/Docker-supported-2496ED?logo=docker)](https://docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-一个基于 **Go + Gin + GORM + MySQL + Redis + JWT** 的汇率与文章社区后端 API 项目，支持用户注册登录、汇率数据管理(接入第三方实时汇率API)、文章发布与互动、Redis 缓存和 Docker Compose 本地部署。
+一个基于 **Go + Gin + GORM + MySQL + Redis + JWT** 的汇率与文章社区后端 API 项目，支持用户注册登录、汇率数据管理(接入第三方实时汇率API)、文章发布与互动、Redis 缓存、SQL Migration 和 Docker Compose 本地部署。
 
 项目采用模块化单体结构，将 HTTP 接口、业务逻辑和数据访问拆分为 Controller、Service、Repository 三层，并通过 DTO、统一响应结构和业务错误码规范接口输出。
 
@@ -40,10 +40,12 @@ Controller -> Service -> Repository -> MySQL
 
 - 用户注册与登录，基于 JWT 的接口鉴权
 - bcrypt 密码哈希存储
-- 汇率数据创建与查询，支持外部汇率 API 查询与金额换算
+- 汇率数据创建与查询，使用 `DECIMAL(20,10)` 精确存储汇率，支持按货币对和汇率日期唯一约束
+- 支持外部汇率 API 查询与金额换算
 - 文章列表、详情、创建、更新、删除
 - Redis 文章列表分页缓存
 - Redis 汇率热点缓存，缓存最新货币对汇率
+- 基于 `golang-migrate` 的版本化 SQL migration，支持数据库结构可追踪升级
 - Redis 文章点赞计数（基于用户 ID 记录点赞状态，使用 Lua 脚本保证点赞/取消点赞原子性）
 - Controller / Service / Repository 分层
 - DTO 请求体与响应体隔离
@@ -65,6 +67,7 @@ Controller -> Service -> Repository -> MySQL
 | 缓存     | Redis 7                 |
 | 认证     | JWT                     |
 | 密码哈希 | bcrypt                  |
+| 迁移工具 | golang-migrate          |
 | 配置管理 | Viper                   |
 | 部署     | Docker / Docker Compose |
 
@@ -75,8 +78,10 @@ Controller -> Service -> Repository -> MySQL
 ```text
 Exchangeapp_backend/
 ├── cmd/
+│   ├── migrate/
+│   │   └── main.go                     # 数据库 migration 命令入口
 │   └── server/
-│       └── main.go                     # 程序入口：依赖装配、HTTP 服务启动、优雅关停
+│       └── main.go                     # HTTP 服务入口：依赖装配、服务启动、优雅关停
 ├── configs/
 │   ├── config.yml                      # 本地配置文件（不建议提交敏感配置）
 │   └── config.yml.example              # 配置模板
@@ -93,6 +98,8 @@ Exchangeapp_backend/
 │   │   ├── article_controller.go       # 文章 CRUD 与点赞接口
 │   │   ├── controllers.go              # Controller 聚合/占位
 │   │   └── exchange_rate_controller.go # 汇率查询、创建与换算接口
+│   ├── dbmigrate/
+│   │   └── dbmigrate.go                # golang-migrate 封装
 │   ├── dto/
 │   │   └── dto.go                      # 请求 DTO 与响应 DTO
 │   ├── middlewares/
@@ -128,6 +135,11 @@ Exchangeapp_backend/
 ├── .env.example                        # Docker 环境变量模板
 ├── Dockerfile                          # Go 服务镜像构建
 ├── docker-compose.yml                  # backend + MySQL + Redis 编排
+├── migrations/                         # SQL migration 文件
+│   ├── 000001_init_schema.up.sql       # 当前项目初始表结构 baseline
+│   ├── 000001_init_schema.down.sql
+│   ├── 000002_update_exchange_rates_dates_and_decimal.up.sql
+│   └── 000002_update_exchange_rates_dates_and_decimal.down.sql
 ├── go.mod
 └── go.sum
 ```
@@ -159,6 +171,19 @@ config.InitConfig()
 
 这种方式让数据库连接、Redis 客户端和业务服务在启动阶段集中创建，并通过构造函数传递给下层模块。
 
+数据库结构变更通过 `cmd/migrate` 单独执行：
+
+```text
+cmd/migrate
+  -> config.LoadConfig()
+  -> 读取 configs/config.yml 的 database.dsn
+  -> 如存在 DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME，则覆盖 DSN
+  -> 如存在 DB_URL，则优先使用 DB_URL
+  -> 执行 migrations/*.sql
+```
+
+生产和团队协作中推荐先执行 migration，再启动或重启后端服务。`database.autoMigrate` 默认保持 `false`，避免服务启动时隐式修改数据库结构。
+
 ---
 
 ## 前置要求
@@ -186,8 +211,35 @@ cd Go-Gin-demo-Currency-Exchange-Web/Exchangeapp_backend
 
 cp .env.example .env
 cp configs/config.yml.example configs/config.yml
+```
 
-docker compose up --build
+先启动 MySQL 和 Redis：
+
+```bash
+docker compose up -d mysql redis
+```
+
+Docker MySQL 在容器内部使用 `mysql:3306`，映射到宿主机为 `127.0.0.1:3307`。在宿主机执行 migration 时，使用宿主机可访问的 `3307`：
+
+PowerShell：
+
+```powershell
+$env:DB_URL = "mysql://root:password@tcp(127.0.0.1:3307)/currency_exchange_db?charset=utf8mb4&parseTime=true&loc=Local"
+go run ./cmd/migrate up
+Remove-Item Env:DB_URL
+```
+
+Bash：
+
+```bash
+DB_URL="mysql://root:password@tcp(127.0.0.1:3307)/currency_exchange_db?charset=utf8mb4&parseTime=true&loc=Local" \
+  go run ./cmd/migrate up
+```
+
+迁移完成后启动后端：
+
+```bash
+docker compose up -d --build backend
 ```
 
 服务启动后默认监听：
@@ -253,6 +305,14 @@ jwt:
 
 #### 4. 启动服务
 
+先执行数据库 migration：
+
+```bash
+go run ./cmd/migrate up
+```
+
+再启动 HTTP 服务：
+
 ```bash
 go run ./cmd/server
 ```
@@ -277,6 +337,28 @@ DB_PASSWORD=password
 DB_NAME=currency_exchange_db
 REDIS_HOST=redis
 REDIS_PORT=6379
+```
+
+注意：
+
+- `.env` 由 Docker Compose 读取，并通过 `environment` 注入到容器内，供后端程序用 `os.Getenv` 获取。
+- 容器内后端连接 Docker MySQL 使用 `mysql:3306`。
+- 宿主机上的 migration 命令连接 Docker MySQL 使用 `127.0.0.1:3307`。
+- 本地 `go run ./cmd/server` 默认读取 `configs/config.yml`，通常连接本机 MySQL `127.0.0.1:3306`。
+
+数据库迁移命令：
+
+```bash
+go run ./cmd/migrate up       # 执行所有未执行的迁移
+go run ./cmd/migrate down     # 回滚 1 个版本
+go run ./cmd/migrate version  # 查看当前数据库版本和 dirty 状态
+```
+
+`cmd/migrate` 默认读取 `configs/config.yml`，也支持 `DB_URL` 显式覆盖目标数据库：
+
+```bash
+DB_URL="mysql://root:password@tcp(127.0.0.1:3307)/currency_exchange_db?charset=utf8mb4&parseTime=true&loc=Local" \
+  go run ./cmd/migrate version
 ```
 
 ---
@@ -319,8 +401,8 @@ REDIS_PORT=6379
 
 ### 认证接口
 
-| 方法 | 路径                   | 说明     | 认证 |
-| ---- | ---------------------- | -------- | ---- |
+| 方法 | 路径                 | 说明     | 认证 |
+| ---- | -------------------- | -------- | ---- |
 | POST | `/api/auth/register` | 用户注册 | 否   |
 | POST | `/api/auth/login`    | 用户登录 | 否   |
 
@@ -347,8 +429,8 @@ REDIS_PORT=6379
 
 ### 汇率接口
 
-| 方法 | 路径                                           | 说明               | 认证 |
-| ---- | ---------------------------------------------- | ------------------ | ---- |
+| 方法 | 路径                                         | 说明               | 认证 |
+| ---- | -------------------------------------------- | ------------------ | ---- |
 | GET  | `/api/exchangeRates`                         | 查询已录入汇率列表 | 否   |
 | GET  | `/api/rates/latest?base=USD&quote=CNY`       | 查询最新货币对汇率 | 否   |
 | GET  | `/api/convert?base=USD&quote=CNY&amount=100` | 汇率换算           | 否   |
@@ -360,14 +442,39 @@ REDIS_PORT=6379
 {
   "fromCurrency": "USD",
   "toCurrency": "CNY",
-  "rate": 7.25
+  "rate": "7.2500000000",
+  "rateDate": "2026-05-30"
+}
+```
+
+说明：
+
+- `rate` 使用字符串传输，后端使用 `decimal.Decimal` 解析，数据库使用 `DECIMAL(20,10)` 存储，避免浮点精度误差。
+- `rateDate` 表示汇率日期，格式为 `YYYY-MM-DD`；不传时默认使用当天日期。
+- `fetchedAt` 由服务端写入，表示该汇率记录的抓取/录入时间。
+
+汇率响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": [
+    {
+      "fromCurrency": "USD",
+      "toCurrency": "CNY",
+      "rate": "7.2500000000",
+      "rateDate": "2026-05-30",
+      "fetchedAt": "2026-05-30 14:23:45"
+    }
+  ]
 }
 ```
 
 ### 文章接口
 
-| 方法   | 路径                                  | 说明               | 认证 |
-| ------ | ------------------------------------- | ------------------ | ---- |
+| 方法   | 路径                                | 说明               | 认证 |
+| ------ | ----------------------------------- | ------------------ | ---- |
 | GET    | `/api/articles?page=1&page_size=10` | 查询文章列表(分页) | 否   |
 | GET    | `/api/articles/:id`                 | 查询文章详情       | 否   |
 | GET    | `/api/articles/:id/likes`           | 查询文章点赞数     | 否   |
