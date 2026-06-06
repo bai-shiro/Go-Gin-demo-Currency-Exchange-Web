@@ -14,11 +14,11 @@ type Services struct {
 	Auth     *AuthService
 }
 
-func NewServices(repos *repository.Repositories, redisClient *redis.Client, jwtSecret string, jwtTTL time.Duration) *Services {
+func NewServices(repos *repository.Repositories, redisClient *redis.Client, jwtOptions JWTOptions) *Services {
 	exchangeClient := exchange.NewFrankfurterClient(exchange.DefaultFrankfurterBaseURL, 3*time.Second)
 	return &Services{
 		Articles: NewArticleService(repos.Articles, redisClient),
 		Rates:    NewRateService(repos.Rates, redisClient, exchangeClient),
-		Auth:     NewAuthService(repos.Users, jwtSecret, jwtTTL),
+		Auth:     NewAuthService(repos.Users, redisClient, jwtOptions),
 	}
 }

@@ -15,4 +15,6 @@ cache:
 
 jwt:
   secret: your-secret
-  ttl: 24h
+  accessTTL: 15m
+  refreshSlidingTTL: 168h
+  refreshAbsoluteTTL: 720h

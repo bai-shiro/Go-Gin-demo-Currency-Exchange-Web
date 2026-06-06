@@ -23,7 +23,7 @@ HTTP API
 
 ## 功能特性
 
-- 用户注册、登录、JWT 鉴权
+- 用户注册、登录、JWT 双 token 鉴权与 refresh token 轮换
 - bcrypt 密码哈希存储
 - 文章创建、查询、更新、删除
 - 文章分页查询与 Redis 缓存
@@ -171,7 +171,7 @@ GET /api/rates/history
 ### Docker Compose
 
 ```bash
-git clone https://github.com/bai-shiro/Go-Gin-demo-Currency-Exchange-Web.git
+git clone https://github.com/bai-shiro/Go-Currency-Exchange-Hub.git
 cd Go-Gin-demo-Currency-Exchange-Web/Exchangeapp_backend
 
 cp .env.example .env
@@ -248,7 +248,9 @@ cache:
 
 jwt:
   secret: your-secret
-  ttl: 24h
+  accessTTL: 15m
+  refreshSlidingTTL: 168h
+  refreshAbsoluteTTL: 720h
 ```
 
 推荐通过 migration 管理表结构，`database.autoMigrate` 默认保持关闭，避免服务启动时隐式修改数据库结构。
@@ -291,8 +293,10 @@ jwt:
 | ---- | -------------------- | -------- | ---- |
 | POST | `/api/auth/register` | 用户注册 | 否   |
 | POST | `/api/auth/login`    | 用户登录 | 否   |
+| POST | `/api/auth/refresh`  | 刷新令牌 | 否   |
+| POST | `/api/auth/logout`   | 退出登录 | 否   |
 
-请求示例：
+注册 / 登录请求示例：
 
 ```json
 {
@@ -308,10 +312,21 @@ jwt:
   "code": 0,
   "message": "success",
   "data": {
-    "token": "<jwt-token>"
+    "accessToken": "<access-token>",
+    "refreshToken": "<refresh-token>",
+    "accessTokenExpiresIn": 900,
+    "refreshTokenExpiresIn": 604800
   }
 }
 ```
+
+认证模块使用 access token + refresh token 机制：
+
+- access token 有效期较短，用于访问业务接口。
+- refresh token 有效期较长，只用于刷新令牌。
+- refresh token 的 `jti` 和会话状态存储在 Redis 中，支持主动登出和 token rotation。
+- refresh token 同时使用滑动过期和绝对过期，避免长期活跃会话无限续期。
+- 业务接口只接受 `token_type=access` 的 JWT。
 
 ### 汇率
 
@@ -398,10 +413,10 @@ jwt:
 
 ### 鉴权方式
 
-需要认证的接口在请求头携带 JWT：
+需要认证的接口在请求头携带 access token：
 
 ```http
-Authorization: Bearer <jwt-token>
+Authorization: Bearer <access-token>
 ```
 
 ## Curl 示例
@@ -422,6 +437,22 @@ curl -X POST http://localhost:3000/api/auth/login \
   -d "{\"username\":\"user1\",\"password\":\"123456\"}"
 ```
 
+刷新令牌：
+
+```bash
+curl -X POST http://localhost:3000/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d "{\"refreshToken\":\"<refresh-token>\"}"
+```
+
+退出登录：
+
+```bash
+curl -X POST http://localhost:3000/api/auth/logout \
+  -H "Content-Type: application/json" \
+  -d "{\"refreshToken\":\"<refresh-token>\"}"
+```
+
 查询最新汇率：
 
 ```bash
@@ -438,7 +469,7 @@ curl "http://localhost:3000/api/rates/convert?base=USD&quote=CNY&amount=100"
 
 ```bash
 curl "http://localhost:3000/api/rates/history?base=USD&quote=CNY&startDate=2026-05-01&endDate=2026-05-31" \
-  -H "Authorization: Bearer <jwt-token>"
+  -H "Authorization: Bearer <access-token>"
 ```
 
 创建文章：
@@ -446,7 +477,7 @@ curl "http://localhost:3000/api/rates/history?base=USD&quote=CNY&startDate=2026-
 ```bash
 curl -X POST http://localhost:3000/api/articles \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <jwt-token>" \
+  -H "Authorization: Bearer <access-token>" \
   -d "{\"title\":\"hello\",\"content\":\"article content\",\"preview\":\"short preview\"}"
 ```
 
@@ -454,7 +485,7 @@ curl -X POST http://localhost:3000/api/articles \
 
 ```bash
 curl -X POST http://localhost:3000/api/articles/1/like \
-  -H "Authorization: Bearer <jwt-token>"
+  -H "Authorization: Bearer <access-token>"
 ```
 
 ## 测试验证
@@ -468,7 +499,7 @@ go test ./...
 
 当前测试覆盖：
 
-- `pkg/jwtauth`：JWT 生成、解析、错误密钥、缺少 Bearer 前缀、过期 token、缺少 `user_id` claim。
+- `pkg/jwtauth`：access / refresh token 生成与解析、错误密钥、缺少 Bearer 前缀、过期 token、缺少 `user_id` claim、refresh token session 校验。
 - `pkg/passwordbcrypt`：密码哈希、正确密码校验、错误密码拒绝。
 - `internal/service`：
   - Redis Lua 点赞 / 取消点赞 toggle。
@@ -478,6 +509,11 @@ go test ./...
   - 汇率换算。
   - 历史汇率查询参数校验。
   - 历史汇率查询对 repository 的调用参数验证。
+  - 登录返回双 token。
+  - refresh token rotation。
+  - 旧 refresh token 复用失败。
+  - logout 撤销 refresh session。
+  - refresh token 滑动过期受绝对过期限制。
 
 Redis 相关测试默认连接 `127.0.0.1:6379` 的 DB 15；如果本地没有 Redis，会自动跳过 Redis 集成测试。也可以通过环境变量指定测试 Redis：
 

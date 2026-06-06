@@ -30,7 +30,16 @@ func main() {
 
 	// 依赖注入数据库和业务层
 	repos := repository.NewRepositories(appConfig.Db)
-	services := service.NewServices(repos, appConfig.RedisDB, appConfig.JWT.Secret, appConfig.JWT.TTL)
+	services := service.NewServices(
+		repos,
+		appConfig.RedisDB,
+		service.JWTOptions{
+			Secret:             appConfig.JWT.Secret,
+			AccessTTL:          appConfig.JWT.AccessTTL,
+			RefreshSlidingTTL:  appConfig.JWT.RefreshSlidingTTL,
+			RefreshAbsoluteTTL: appConfig.JWT.RefreshAbsoluteTTL,
+		},
+	)
 
 	// 注册路由
 	r := router.SetupRouter(appConfig, services)

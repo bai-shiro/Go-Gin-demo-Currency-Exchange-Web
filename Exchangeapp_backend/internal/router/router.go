@@ -34,6 +34,8 @@ func SetupRouter(appConfig *config.Config, services *service.Services) *gin.Engi
 	{
 		auth.POST("/login", authController.Login)
 		auth.POST("/register", authController.Register)
+		auth.POST("/refresh", authController.Refresh)
+		auth.POST("/logout", authController.Logout)
 	}
 
 	rates := r.Group("/api/rates")

@@ -17,7 +17,7 @@ func AuthMiddleWare(jwtSecret string) gin.HandlerFunc {
 		}
 
 		claims, err := jwtauth.ParseJWT(token, jwtSecret)
-		if err != nil {
+		if err != nil || claims.TokenType != jwtauth.TokenTypeAccess {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"Error": "Invalid token"})
 			ctx.Abort()
 			return

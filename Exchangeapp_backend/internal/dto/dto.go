@@ -25,6 +25,14 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refreshToken" binding:"required"`
+}
+
+type LogoutRequest struct {
+	RefreshToken string `json:"refreshToken" binding:"required"`
+}
+
 type ArticleResponse struct {
 	ID      uint   `json:"id"`
 	Title   string `json:"title"`
@@ -41,7 +49,10 @@ type RateResponse struct {
 }
 
 type AuthResponse struct {
-	Token string `json:"token"`
+	AccessToken           string `json:"accessToken"`
+	RefreshToken          string `json:"refreshToken"`
+	AccessTokenExpiresIn  int64  `json:"accessTokenExpiresIn"`
+	RefreshTokenExpiresIn int64  `json:"refreshTokenExpiresIn"`
 }
 
 type LatestRateResponse struct {

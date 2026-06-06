@@ -25,13 +25,13 @@ func (c *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.auth.Register(req.Username, req.Password)
+	tokens, err := c.auth.Register(req.Username, req.Password)
 	if err != nil {
 		response.Error(ctx, err)
 		return
 	}
 
-	response.Success(ctx, dto.AuthResponse{Token: token})
+	response.Success(ctx, toAuthResponse(tokens))
 }
 
 func (c *AuthController) Login(ctx *gin.Context) {
@@ -42,11 +42,53 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.auth.Login(req.Username, req.Password)
+	tokens, err := c.auth.Login(req.Username, req.Password)
 	if err != nil {
 		response.Error(ctx, err)
 		return
 	}
 
-	response.Success(ctx, dto.AuthResponse{Token: token})
+	response.Success(ctx, toAuthResponse(tokens))
+}
+
+func (c *AuthController) Refresh(ctx *gin.Context) {
+	var req dto.RefreshTokenRequest
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.Error(ctx, apperrors.ErrInvalidParams)
+		return
+	}
+
+	tokens, err := c.auth.Refresh(req.RefreshToken)
+	if err != nil {
+		response.Error(ctx, err)
+		return
+	}
+
+	response.Success(ctx, toAuthResponse(tokens))
+}
+
+func (c *AuthController) Logout(ctx *gin.Context) {
+	var req dto.LogoutRequest
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.Error(ctx, apperrors.ErrInvalidParams)
+		return
+	}
+
+	if err := c.auth.Logout(req.RefreshToken); err != nil {
+		response.Error(ctx, err)
+		return
+	}
+
+	response.Success(ctx, gin.H{"loggedOut": true})
+}
+
+func toAuthResponse(tokens *service.AuthTokens) dto.AuthResponse {
+	return dto.AuthResponse{
+		AccessToken:           tokens.AccessToken,
+		RefreshToken:          tokens.RefreshToken,
+		AccessTokenExpiresIn:  tokens.AccessTokenExpiresIn,
+		RefreshTokenExpiresIn: tokens.RefreshTokenExpiresIn,
+	}
 }

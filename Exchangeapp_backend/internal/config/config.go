@@ -30,8 +30,10 @@ type Config struct {
 	} `mapstructure:"cache"`
 
 	JWT struct {
-		Secret string        `mapstructure:"secret"`
-		TTL    time.Duration `mapstructure:"ttl"`
+		Secret             string        `mapstructure:"secret"`
+		AccessTTL          time.Duration `mapstructure:"accessTTL"`
+		RefreshSlidingTTL  time.Duration `mapstructure:"refreshSlidingTTL"`
+		RefreshAbsoluteTTL time.Duration `mapstructure:"refreshAbsoluteTTL"`
 	} `mapstructure:"jwt"`
 
 	Db      *gorm.DB
@@ -66,7 +68,21 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("Unable to decode into struct: %v", err)
 	}
 
+	applyJWTDefaults(appConfig)
+
 	return appConfig, nil
+}
+
+func applyJWTDefaults(appConfig *Config) {
+	if appConfig.JWT.AccessTTL == 0 {
+		appConfig.JWT.AccessTTL = 15 * time.Minute
+	}
+	if appConfig.JWT.RefreshSlidingTTL == 0 {
+		appConfig.JWT.RefreshSlidingTTL = 7 * 24 * time.Hour
+	}
+	if appConfig.JWT.RefreshAbsoluteTTL == 0 {
+		appConfig.JWT.RefreshAbsoluteTTL = 30 * 24 * time.Hour
+	}
 }
 
 func initDB(appConfig *Config) {
