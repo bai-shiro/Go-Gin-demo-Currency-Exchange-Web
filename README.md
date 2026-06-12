@@ -7,7 +7,8 @@
 [![Docker](https://img.shields.io/badge/Docker-supported-2496ED?logo=docker)](https://docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-基于 **Go + Gin + GORM + MySQL + Redis + JWT** 的汇率查询与内容管理后端项目。
+基于 **Go + Gin + GORM + MySQL + Redis + JWT** 的汇率查询与内容管理后端项目。  
+(基于Vue3的前端项目正在同步开发中，访问详情：[Go-Exchange-Hub-Frontend](https://github.com/bai-shiro/Go-Currency-Exchange-Hub-frontend))
 
 项目围绕“汇率数据查询与持久化”展开，同时包含用户认证、文章管理、分页缓存、点赞互动、外部 API 接入、历史汇率查询、测试和压测验证。
 
@@ -570,4 +571,4 @@ status_counts=map[200:1000] errors=0
 - 增加定时任务，周期性拉取指定币种对汇率并写入数据库。
 - 增加汇率阈值监控和通知能力。
 - 接入 Prometheus 指标，观察缓存命中率、外部 API 延迟和错误率。
-- 补充 OpenAPI / Swagger 文档。
+- 补充 OpenAPI / Swagger 文档。（下一步工作任务）
